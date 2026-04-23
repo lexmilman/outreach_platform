@@ -13,6 +13,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // `server-only` is provided by Next at runtime; stub it in tests.
+      "server-only": path.resolve(__dirname, "./test/mocks/server-only.ts"),
     },
   },
 });
