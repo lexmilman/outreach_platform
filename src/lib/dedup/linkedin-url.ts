@@ -27,7 +27,7 @@ export function normalizeLinkedInUrl(raw: string | null | undefined): Normalized
   const trimmed = raw.trim();
 
   const m1 = trimmed.match(PUBLIC_IN);
-  if (m1) {
+  if (m1 && m1[1]) {
     return {
       publicUrl: `https://www.linkedin.com/in/${m1[1].toLowerCase()}`,
       hashId: null,
@@ -36,12 +36,12 @@ export function normalizeLinkedInUrl(raw: string | null | undefined): Normalized
   }
 
   const m2 = trimmed.match(SALES_NAV);
-  if (m2) {
+  if (m2 && m2[1]) {
     return { publicUrl: null, hashId: m2[1], raw: trimmed };
   }
 
   const m3 = trimmed.match(PUBLIC_COMPANY);
-  if (m3) {
+  if (m3 && m3[1]) {
     return {
       publicUrl: `https://www.linkedin.com/company/${m3[1].toLowerCase()}`,
       hashId: null,

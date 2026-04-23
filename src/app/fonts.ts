@@ -1,5 +1,4 @@
 import { Manrope } from "next/font/google";
-import localFont from "next/font/local";
 
 export const manrope = Manrope({
   subsets: ["latin"],
@@ -8,18 +7,14 @@ export const manrope = Manrope({
 });
 
 /**
- * Cygre — replace these .woff2 files under `src/app/fonts/` with the licensed
- * woff2 files from your license provider before building production.
- * Until then, Cygre falls back to Manrope gracefully.
+ * Headings use Cygre. Cygre is a licensed font — we load it via @font-face
+ * in `src/app/globals.css` (not via `next/font/local`) so missing woff2 files
+ * don't break the build. Drop the licensed files into `public/fonts/` to
+ * activate:
+ *   - public/fonts/Cygre-Regular.woff2   (400)
+ *   - public/fonts/Cygre-Medium.woff2    (500)
+ *   - public/fonts/Cygre-Semibold.woff2  (600)
+ *   - public/fonts/Cygre-Bold.woff2      (700)
+ * Until they're present, headings fall back to Manrope via the `--font-display`
+ * CSS variable defined in `globals.css`.
  */
-export const cygre = localFont({
-  src: [
-    { path: "./fonts/Cygre-Regular.woff2", weight: "400", style: "normal" },
-    { path: "./fonts/Cygre-Medium.woff2", weight: "500", style: "normal" },
-    { path: "./fonts/Cygre-Semibold.woff2", weight: "600", style: "normal" },
-    { path: "./fonts/Cygre-Bold.woff2", weight: "700", style: "normal" },
-  ],
-  display: "swap",
-  variable: "--font-cygre",
-  fallback: ["Manrope", "ui-sans-serif", "system-ui"],
-});

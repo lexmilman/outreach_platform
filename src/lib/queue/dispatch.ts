@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import type { Json } from "@/types/database";
 import { JobPayloadSchema, JobTypeSchema, type JobType, type JobPayload } from "./types";
 
 export async function enqueueJob(input: {
@@ -17,7 +18,7 @@ export async function enqueueJob(input: {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("enqueue_job", {
     p_type: type.data,
-    p_payload: payload.data,
+    p_payload: payload.data as Json,
     p_org_id: input.orgId,
     p_delay: input.delaySec ?? 0,
   });

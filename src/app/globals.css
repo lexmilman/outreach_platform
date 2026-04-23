@@ -2,11 +2,42 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Optional: drop licensed Cygre woff2 files into `/public/fonts/` to activate.
+   Until then, the `--font-display` variable falls back to Manrope (see @theme). */
+@font-face {
+  font-family: "Cygre";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Cygre-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Cygre";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Cygre-Medium.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Cygre";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Cygre-Semibold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Cygre";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/Cygre-Bold.woff2") format("woff2");
+}
+
 /* ========= Brand tokens ========= */
 @theme {
   /* Fonts */
   --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-cygre), var(--font-manrope), ui-sans-serif, system-ui;
+  --font-display: "Cygre", var(--font-manrope), ui-sans-serif, system-ui;
 
   /* Brand palette */
   --color-brand-300: #4a7bff;

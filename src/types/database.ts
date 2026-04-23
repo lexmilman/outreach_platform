@@ -1,26 +1,31 @@
 /**
- * Hand-authored minimal Database type to keep the app type-safe
- * before `pnpm db:types` generates `src/types/supabase.ts`.
+ * Hand-authored Database type to keep the app type-safe before
+ * `pnpm db:types` generates `src/types/supabase.ts`.
  *
- * After running `pnpm db:types`, re-export from the generated file:
- *   export type { Database } from "./supabase";
+ * Shape mirrors what Supabase's type generator produces so @supabase/ssr
+ * and @supabase/supabase-js can infer Table / RPC types correctly.
+ *
+ * After running `pnpm db:types`, replace the body of this file with:
+ *   export type { Database, Json } from "./supabase";
  */
 
-export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
+type Ts = string;
 
 export type Database = {
   public: {
     Tables: {
       organizations: {
-        Row: { id: string; name: string; created_at: string };
-        Insert: { id?: string; name: string; created_at?: string };
-        Update: { id?: string; name?: string; created_at?: string };
+        Row: { id: string; name: string; created_at: Ts };
+        Insert: { id?: string; name: string; created_at?: Ts };
+        Update: { id?: string; name?: string; created_at?: Ts };
         Relationships: [];
       };
       memberships: {
-        Row: { user_id: string; org_id: string; role: "owner" | "admin" | "member" };
-        Insert: { user_id: string; org_id: string; role?: "owner" | "admin" | "member" };
-        Update: { user_id?: string; org_id?: string; role?: "owner" | "admin" | "member" };
+        Row: { user_id: string; org_id: string; role: string };
+        Insert: { user_id: string; org_id: string; role?: string };
+        Update: { user_id?: string; org_id?: string; role?: string };
         Relationships: [];
       };
       clients: {
@@ -32,8 +37,8 @@ export type Database = {
           icp_description: string | null;
           brand_voice: string | null;
           is_archived: boolean;
-          created_at: string;
-          updated_at: string;
+          created_at: Ts;
+          updated_at: Ts;
         };
         Insert: {
           id?: string;
@@ -43,8 +48,8 @@ export type Database = {
           icp_description?: string | null;
           brand_voice?: string | null;
           is_archived?: boolean;
-          created_at?: string;
-          updated_at?: string;
+          created_at?: Ts;
+          updated_at?: Ts;
         };
         Update: {
           id?: string;
@@ -54,8 +59,8 @@ export type Database = {
           icp_description?: string | null;
           brand_voice?: string | null;
           is_archived?: boolean;
-          created_at?: string;
-          updated_at?: string;
+          created_at?: Ts;
+          updated_at?: Ts;
         };
         Relationships: [];
       };
@@ -67,7 +72,7 @@ export type Database = {
           name: string;
           status: string;
           tier: number;
-          created_at: string;
+          created_at: Ts;
         };
         Insert: {
           id?: string;
@@ -76,7 +81,7 @@ export type Database = {
           name: string;
           status?: string;
           tier?: number;
-          created_at?: string;
+          created_at?: Ts;
         };
         Update: {
           id?: string;
@@ -85,12 +90,54 @@ export type Database = {
           name?: string;
           status?: string;
           tier?: number;
-          created_at?: string;
+          created_at?: Ts;
         };
         Relationships: [];
       };
+      people: {
+        Row: Record<string, Json>;
+        Insert: Record<string, Json>;
+        Update: Record<string, Json>;
+        Relationships: [];
+      };
+      companies: {
+        Row: Record<string, Json>;
+        Insert: Record<string, Json>;
+        Update: Record<string, Json>;
+        Relationships: [];
+      };
+      people_in_campaign: {
+        Row: Record<string, Json>;
+        Insert: Record<string, Json>;
+        Update: Record<string, Json>;
+        Relationships: [];
+      };
+      enrichments: {
+        Row: Record<string, Json>;
+        Insert: Record<string, Json>;
+        Update: Record<string, Json>;
+        Relationships: [];
+      };
+      job_runs: {
+        Row: Record<string, Json>;
+        Insert: Record<string, Json>;
+        Update: Record<string, Json>;
+        Relationships: [];
+      };
+      replies: {
+        Row: Record<string, Json>;
+        Insert: Record<string, Json>;
+        Update: Record<string, Json>;
+        Relationships: [];
+      };
+      webhooks_log: {
+        Row: Record<string, Json>;
+        Insert: Record<string, Json>;
+        Update: Record<string, Json>;
+        Relationships: [];
+      };
     };
-    Views: Record<string, never>;
+    Views: Record<never, never>;
     Functions: {
       bootstrap_user_org: {
         Args: { p_org_name?: string };
@@ -108,8 +155,12 @@ export type Database = {
         Args: { p_msg_id: number };
         Returns: number;
       };
+      search_people: {
+        Args: { p_text?: string | null; p_org_id?: string | null; p_limit?: number };
+        Returns: Record<string, Json>[];
+      };
     };
-    Enums: Record<string, never>;
-    CompositeTypes: Record<string, never>;
+    Enums: Record<never, never>;
+    CompositeTypes: Record<never, never>;
   };
 };

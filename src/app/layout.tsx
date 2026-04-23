@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
-import { cygre, manrope } from "./fonts";
+import { manrope } from "./fonts";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
@@ -15,7 +15,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={cn(manrope.variable, cygre.variable)}>
+    <html lang="en" suppressHydrationWarning className={cn(manrope.variable)}>
       <body className="min-h-screen bg-background text-foreground antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
