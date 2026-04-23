@@ -1,0 +1,40 @@
+# deps
+node_modules
+.pnpm-store
+.pnpm-debug.log*
+
+# next
+.next
+out
+next-env.d.ts
+
+# env
+.env
+.env.local
+.env.*.local
+
+# claude
+CLAUDE.local.md
+.claude/settings.local.json
+
+# test
+coverage
+playwright-report
+test-results
+.vitest-cache
+
+# supabase
+supabase/.temp
+supabase/.branches
+
+# editor
+.idea
+.vscode
+*.swp
+.DS_Store
+
+# vercel
+.vercel
+
+# typegen
+src/types/supabase.ts

@@ -1,0 +1,4 @@
+First name,Last name,Profile url,Title,Organization 1,Company url,Email 1,Summary,Location,Country
+Jane,Doe,https://www.linkedin.com/in/janedoe,VP Engineering,Acme Corp,https://www.linkedin.com/company/acme,jane@acme.com,"Building platforms at scale.",San Francisco,United States
+John,Smith,https://www.linkedin.com/in/johnsmith,CTO,Globex,https://www.linkedin.com/company/globex,john@globex.com,"Scaling engineering orgs.",Austin,United States
+Alice,Chen,https://www.linkedin.com/in/alicechen,Head of Product,Initech,https://www.linkedin.com/company/initech,,"20 years shipping software.",Vancouver,Canada

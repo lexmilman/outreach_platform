@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm *)",
+      "Bash(npx *)",
+      "Bash(supabase *)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git log*)",
+      "Read",
+      "Edit",
+      "Write",
+      "Grep",
+      "Glob"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(pnpm install *)",
+      "Bash(vercel *)",
+      "Bash(supabase db push)"
+    ],
+    "deny": [
+      "Read(./.env*)",
+      "Read(./secrets/**)",
+      "Bash(rm -rf:*)",
+      "Bash(curl:*)",
+      "WebFetch"
+    ]
+  },
+  "autoMemoryEnabled": true
+}
