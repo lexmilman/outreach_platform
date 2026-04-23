@@ -511,11 +511,11 @@ create policy orgs_read on public.organizations
   for select to authenticated
   using (id in (select private.current_org_ids()));
 
--- Generic org-scoped read+write for tenant tables
+-- Generic org-scoped read+write for tenant tables that carry `org_id` directly.
 do $$ declare t text; begin
   for t in values
     ('clients'),('audiences'),('campaigns'),
-    ('enrichments'),('prompts'),('prompt_versions'),('prompt_runs'),
+    ('enrichments'),('prompts'),
     ('experiments'),('llm_providers_config'),('api_integrations_config'),
     ('job_runs'),('cost_tracking'),('analytics_snapshots'),
     ('replies'),('custom_fields'),('table_views'),
@@ -529,6 +529,29 @@ do $$ declare t text; begin
     $f$, t, t);
   end loop;
 end $$;
+
+-- prompt_versions + prompt_runs: scoped through their parent `prompts.org_id`.
+create policy prompt_versions_rw on public.prompt_versions
+  for all to authenticated
+  using (prompt_id in (select id from public.prompts where org_id in (select private.current_org_ids())))
+  with check (prompt_id in (select id from public.prompts where org_id in (select private.current_org_ids())));
+
+create policy prompt_runs_rw on public.prompt_runs
+  for all to authenticated
+  using (
+    prompt_version_id in (
+      select pv.id from public.prompt_versions pv
+      join public.prompts p on p.id = pv.prompt_id
+      where p.org_id in (select private.current_org_ids())
+    )
+  )
+  with check (
+    prompt_version_id in (
+      select pv.id from public.prompt_versions pv
+      join public.prompts p on p.id = pv.prompt_id
+      where p.org_id in (select private.current_org_ids())
+    )
+  );
 
 -- Global tables (people, companies, emails): readable by any authenticated user in any org,
 -- writable via server actions / edge functions only (service role).
