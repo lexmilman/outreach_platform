@@ -47,6 +47,14 @@ All tables live in the `public` schema. RLS is enabled on every table.
 - `pgmq.q_webhooks` — reserved for future buffered webhooks.
 - `pgmq.q_dlq` — dead letter queue; replay via `replay_dlq(msg_id)` RPC.
 
+## Views
+- `v_people_with_company` (security_invoker) — people joined to their current company. Grid reads from this so it doesn't need a second roundtrip.
+
+## RPCs (Sprint 2 additions)
+- `bulk_upsert_companies(p_rows jsonb) → (inserted, matched)` — `SECURITY DEFINER`, `auth.uid()` gate. Two-pass: first on `linkedin_url` via `ON CONFLICT`, then domain-only rows via `NOT EXISTS`. Preserves existing fields with `coalesce(existing, incoming)`, merges `data_json` with `||`.
+- `bulk_upsert_people(p_rows jsonb) → (inserted, matched, linked_companies)` — same shape. Looks up `current_company_id` by `company_linkedin_url` then `company_domain`. Secondary pass on `dedup_key` for rows without a LinkedIn URL.
+- `update_person_fields(p_id, p_first_name?, p_last_name?, p_full_name?, p_current_title?, p_location?, p_country?) → people row` — whitelisted inline-edit RPC. Anything outside this set must use the worker/service role.
+
 ## Triggers
 - `tg_set_updated_at()` — applied to `clients`, `companies`, `people`, `campaigns`.
 

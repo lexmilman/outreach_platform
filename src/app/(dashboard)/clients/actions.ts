@@ -4,16 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ClientCreateSchema, ClientIdSchema, ClientUpdateSchema } from "@/lib/schemas/client";
 import { createClient } from "@/lib/supabase/server";
+import { currentOrgId } from "@/lib/auth/current-org";
 import { slugify } from "@/lib/utils";
 
 export type ActionState = { ok: boolean; error?: string };
-
-async function currentOrgId() {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("memberships").select("org_id").limit(1).maybeSingle();
-  if (error || !data) return null;
-  return data.org_id;
-}
 
 export async function createClientAction(
   _prev: ActionState,

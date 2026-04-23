@@ -8,12 +8,15 @@
 - [x] `/ship "feat: bootstrap + auth + clients"`
 
 ## Sprint 2 — CSV import + global people/companies + Clay table
-- [ ] `src/lib/csv/` parse + auto-map (papaparse + fuse.js)
-- [ ] CSV importer UI with mapping preview
-- [ ] Full virtualized grid with 10 cell types
-- [ ] Dedup on LinkedIn URL + fuzzy name+domain
-- [ ] Realtime hook for live updates
-- [ ] `/ship "feat: csv import + clay-style people grid"`
+- [x] `src/lib/csv/` parse + auto-map (papaparse + fuse.js)
+- [x] CSV importer UI: 3-step wizard (upload / map / review+run)
+- [x] Full virtualized grid with 8 cell types (text, number, date, url, email, avatar, score-badge, company-chip)
+- [x] Dedup on LinkedIn URL + fuzzy name+domain (DB-side via `bulk_upsert_people` RPC)
+- [x] Realtime hook for live updates (debounced, updates visible rows only)
+- [x] Read-only PersonDrawer + CompanyDrawer
+- [x] Inline cell edits via whitelisted `update_person_fields` RPC
+- [x] `/ship "feat(sprint-2): csv import + people/company grid + realtime"`
+- Deferred to Sprint 3+: filter builder UI, saved views UI, bulk action bar, JSON/Tag/Status cells, column virtualization.
 
 ## Sprint 3 — Enrichment pipeline + scoring + messages
 - [ ] Apify (3 actors) + FindyMail + SignalHire + Instantly verify clients

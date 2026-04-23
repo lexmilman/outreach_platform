@@ -22,6 +22,33 @@ flowchart TD
   DB --> RT
 ```
 
+## CSV import pipeline (Sprint 2)
+
+```mermaid
+flowchart LR
+  A[LinkedHelper CSV] --> B[papaparse]
+  B --> C[autoMapColumns<br/>Fuse.js ≥ 0.4]
+  C --> D[User reviews mappings]
+  D --> E[mapRows → LeadSchema.safeParse]
+  E --> F[buildImportRows<br/>normalize LI, compute dedup_key]
+  F --> G[(RPC bulk_upsert_companies)]
+  F --> H[(RPC bulk_upsert_people)]
+  G --> I[(public.companies)]
+  H --> J[(public.people)]
+  J -. current_company_id .-> I
+```
+
+People and companies are **global** (no `org_id`). RLS makes both tables read-all for authenticated users; writes are gated through `SECURITY DEFINER` RPCs that assert `auth.uid() is not null`. Dedup happens server-side via `ON CONFLICT (linkedin_url) DO UPDATE` + a secondary pass on `dedup_key = sha256(lower(first_name||last_name||domain))` for rows missing a LinkedIn URL. Existing fields are preserved via `coalesce(existing, incoming)`; `data_json` merges with `||` so enrichment runs never clobber each other.
+
+Chunk size: 500 rows per RPC call. Max upload: 100k rows / 25MB.
+
+## Clay-style grid (Sprint 2)
+
+- **Virtualized both axes** via `@tanstack/react-virtual` — row virtualizer only; column virtualization deferred since LinkedHelper fits ≤ 30 columns on screen. Row height fixed at 40px.
+- **Infinite load** — 100-row pages via React range queries as the scroller approaches the bottom.
+- **Realtime** — `useRealtimeTable` subscribes to `postgres_changes` on people/companies and merges updates (debounced 300ms) only into rows already on screen. RLS is our safety net against cross-org leaks.
+- **Inline edits** — whitelisted columns (`first_name`, `last_name`, `full_name`, `current_title`, `location`, `country`) go through `update_person_fields` RPC. Anything else is read-only until the custom-fields UI ships in Sprint 3.
+
 ## Layers
 
 ### 1. UI (Next.js 15)
