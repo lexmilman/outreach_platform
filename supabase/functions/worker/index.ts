@@ -20,6 +20,10 @@ import {
   handleFindEmailSignalhire,
   handleVerifyEmailInstantly,
 } from "../_shared/handlers-email.ts";
+import {
+  handleScoreLeadLlm,
+  handleGenerateMessagesLlm,
+} from "../_shared/handlers-llm.ts";
 
 type JobMessage = {
   type: string;
@@ -152,9 +156,19 @@ async function dispatch(
     case "verify_email_instantly":
       return handleVerifyEmailInstantly(supabase, payload as { emailId: string }, org_id);
 
-    // TODO(S3.4): LLM jobs
     case "score_lead_llm":
+      return handleScoreLeadLlm(
+        supabase,
+        payload as { personInCampaignId: string },
+        org_id,
+      );
     case "generate_messages_llm":
+      return handleGenerateMessagesLlm(
+        supabase,
+        payload as { personInCampaignId: string },
+        org_id,
+      );
+
     // TODO(S3.5): perplexity custom research
     case "enrich_custom_perplexity":
     // TODO(S4): instantly push + sync, full waterfall
