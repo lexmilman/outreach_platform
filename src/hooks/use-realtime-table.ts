@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 type RowWithId = { id: string; updated_at?: string | null };
 
 type Options<T extends RowWithId> = {
-  table: "people" | "companies";
+  table: "people" | "companies" | "job_runs";
   onUpsert?: (row: T) => void;
   onDelete?: (id: string) => void;
   /** throttle in ms to coalesce bursts; default 300 */

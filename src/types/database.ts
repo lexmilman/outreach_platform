@@ -312,6 +312,10 @@ export type Database = {
         Args: { p_msg_id: number };
         Returns: number;
       };
+      list_dlq: {
+        Args: { p_limit?: number };
+        Returns: { msg_id: number; enqueued_at: string; read_ct: number; message: Json }[];
+      };
       search_people: {
         Args: { p_text?: string | null; p_org_id?: string | null; p_limit?: number };
         Returns: Record<string, Json>[];

@@ -19,12 +19,13 @@
 - Deferred to Sprint 3+: filter builder UI, saved views UI, bulk action bar, JSON/Tag/Status cells, column virtualization.
 
 ## Sprint 3 — Enrichment pipeline + scoring + messages
-- [ ] Apify (3 actors) + FindyMail + SignalHire + Instantly verify clients
-- [ ] Worker Edge Function + pgmq queue + pg_cron + DLQ + job_runs observability
-- [ ] Webhooks (Apify, SignalHire, Instantly)
-- [ ] LLM layer (Vercel AI SDK) with pricing
-- [ ] Prompt rendering + versioning (skip A/B for MVP)
-- [ ] Scoring + message generation jobs
+- [x] **S3.1** worker observability: `/jobs` page (queue health + recent runs + DLQ replay), per-type discriminated zod payloads in `src/lib/queue`, `list_dlq` RPC, fixed `replay_dlq` bug
+- [ ] **S3.2** Apify (3 actors) client + webhook + worker handlers (`enrich_person_apify`, `enrich_company_apify`, `scrape_posts_apify`)
+- [ ] **S3.3** FindyMail + SignalHire + Instantly verify clients + waterfall lookup-by-request_id (`signalhire_pending_requests`)
+- [ ] **S3.4** LLM scoring + message generation (single `generateObject` returning all 4 bodies, zod-validated)
+- [ ] **S3.5** Perplexity custom research (`enrich_custom_perplexity`)
+- [ ] **S3.6** snap fixme on `e2e/enrichment-run.spec.ts` with MSW mocks for all providers
+- [ ] **S3.7** Enrichment UI (run on N leads + diff viewer)
 - [ ] `/ship "feat: enrichment + scoring + message generation"`
 
 ## Sprint 4 — Push to Instantly + analytics (MVP ships)

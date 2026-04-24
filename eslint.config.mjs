@@ -7,6 +7,17 @@ const __dirname = dirname(__filename);
 const compat = new FlatCompat({ baseDirectory: __dirname });
 
 const eslintConfig = [
+  {
+    ignores: [
+      "supabase/functions/**",
+      ".next/**",
+      "node_modules/**",
+      "playwright-report/**",
+      "test-results/**",
+      "next-env.d.ts",
+      "e2e/**",
+    ],
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     rules: {
@@ -14,7 +25,6 @@ const eslintConfig = [
       "@typescript-eslint/no-explicit-any": "error",
       "react/no-unescaped-entities": "off",
     },
-    ignores: ["supabase/functions/**", ".next/**", "node_modules/**"],
   },
 ];
 
