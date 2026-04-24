@@ -15,6 +15,11 @@ import {
   handleEnrichCompanyApify,
   handleScrapePostsApify,
 } from "../_shared/handlers-apify.ts";
+import {
+  handleFindEmailFindymail,
+  handleFindEmailSignalhire,
+  handleVerifyEmailInstantly,
+} from "../_shared/handlers-email.ts";
 
 type JobMessage = {
   type: string;
@@ -140,20 +145,23 @@ async function dispatch(
         org_id,
       );
 
-    // TODO(S3.3): email-finder stack
     case "find_email_findymail":
+      return handleFindEmailFindymail(supabase, payload as { personId: string }, org_id);
     case "find_email_signalhire":
+      return handleFindEmailSignalhire(supabase, payload as { personId: string }, org_id);
     case "verify_email_instantly":
-    case "waterfall_escalate":
+      return handleVerifyEmailInstantly(supabase, payload as { emailId: string }, org_id);
+
     // TODO(S3.4): LLM jobs
     case "score_lead_llm":
     case "generate_messages_llm":
     // TODO(S3.5): perplexity custom research
     case "enrich_custom_perplexity":
-    // TODO(S4): instantly push + sync
+    // TODO(S4): instantly push + sync, full waterfall
     case "push_to_instantly":
     case "sync_instantly_stats":
-    // CSV import is handled synchronously today; the job type is reserved for future async path.
+    case "waterfall_escalate":
+    // CSV import is handled synchronously today; reserved for future async path.
     case "csv_import":
       return { noop: true, type };
     default:

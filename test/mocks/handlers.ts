@@ -52,6 +52,11 @@ export const handlers = [
       contact: { name: "Jane Doe", email: "jane@acme.com", domain: "acme.com" },
     }),
   ),
+  http.post("https://app.findymail.com/api/search/name", () =>
+    HttpResponse.json({
+      contact: { name: "Jane Doe", email: "j.doe@acme.com", domain: "acme.com" },
+    }),
+  ),
   http.post("https://app.findymail.com/api/verify", () =>
     HttpResponse.json({ email: "jane@acme.com", verified: true, provider: "findymail" }),
   ),
@@ -64,6 +69,9 @@ export const handlers = [
   // Instantly
   http.post("https://api.instantly.ai/api/v2/leads/add", () =>
     HttpResponse.json({ added: 1 }),
+  ),
+  http.post("https://api.instantly.ai/api/v2/email-verification", () =>
+    HttpResponse.json({ verification_status: "valid" }),
   ),
   http.get("https://api.instantly.ai/api/v2/campaigns/analytics/overview", () =>
     HttpResponse.json({
