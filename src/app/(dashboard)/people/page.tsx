@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { PeopleGrid } from "@/components/features/grid/people-grid";
+import { EnrichmentToolbar } from "@/components/features/grid/enrichment-toolbar";
 import { PersonDrawer } from "@/components/features/profile-drawer/person-drawer";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,8 @@ export default async function PeoplePage() {
           {error.message}
         </div>
       ) : null}
+
+      <EnrichmentToolbar />
 
       <PeopleGrid initialRows={data ?? []} />
 

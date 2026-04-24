@@ -20,13 +20,15 @@
 
 ## Sprint 3 — Enrichment pipeline + scoring + messages
 - [x] **S3.1** worker observability: `/jobs` page (queue health + recent runs + DLQ replay), per-type discriminated zod payloads in `src/lib/queue`, `list_dlq` RPC, fixed `replay_dlq` bug
-- [ ] **S3.2** Apify (3 actors) client + webhook + worker handlers (`enrich_person_apify`, `enrich_company_apify`, `scrape_posts_apify`)
-- [ ] **S3.3** FindyMail + SignalHire + Instantly verify clients + waterfall lookup-by-request_id (`signalhire_pending_requests`)
-- [ ] **S3.4** LLM scoring + message generation (single `generateObject` returning all 4 bodies, zod-validated)
-- [ ] **S3.5** Perplexity custom research (`enrich_custom_perplexity`)
-- [ ] **S3.6** snap fixme on `e2e/enrichment-run.spec.ts` with MSW mocks for all providers
-- [ ] **S3.7** Enrichment UI (run on N leads + diff viewer)
+- [x] **S3.2** Apify (3 actors) client + webhook + worker handlers (`enrich_person_apify`, `enrich_company_apify`, `scrape_posts_apify`). Build pinning, MOCK_APIFY=1, finalize RPCs.
+- [x] **S3.3** FindyMail + SignalHire + Instantly verify clients + waterfall lookup-by-request_id via `signalhire_pending_requests`. Linear escalation: findymail -> signalhire (async) -> verify_email_instantly.
+- [x] **S3.4** LLM scoring + message generation. Single Anthropic call returning subject + 4 bodies + personalization, zod-validated. Prompt caching on the system block. Auto-chain: score >= 70 enqueues messages.
+- [x] **S3.5** Perplexity custom research (`enrich_custom_perplexity`) — sonar-pro, citations preserved, merged into `people.data_json`.
+- [x] **S3.6** Node integration test for the email waterfall (`src/lib/integrations/_scenarios/email-waterfall.test.ts`); `e2e/enrichment-run.spec.ts` shell behind .fixme() until `TEST_SUPABASE_*` is provisioned.
+- [x] **S3.7** Bulk-enrichment toolbar on `/people` (Run on next N people without prior Apify enrichment).
 - [ ] `/ship "feat: enrichment + scoring + message generation"`
+
+**Deferred to Sprint 4+:** waterfall_escalate handler (full multi-tier with parent/child campaigns), enrichment diff-viewer (before/after side-by-side), prompt management UI with A/B testing, per-org plan-rate config for credit pricing.
 
 ## Sprint 4 — Push to Instantly + analytics (MVP ships)
 - [ ] Create Instantly campaign from UI (with sequence templates)
