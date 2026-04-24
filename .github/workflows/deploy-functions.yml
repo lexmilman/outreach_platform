@@ -1,0 +1,66 @@
+name: Deploy Edge Functions
+
+# Rebuilds + deploys every Supabase Edge Function whenever the code under
+# supabase/functions/** changes on the production branch. Lets the operator
+# skip `supabase functions deploy` from a local CLI — CLAUDE.md forbids that.
+#
+# Required GitHub secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_ACCESS_TOKEN  — personal access token, Dashboard → Account →
+#                            Access Tokens → Generate new token
+#   SUPABASE_PROJECT_REF   — project reference id, Dashboard → Settings →
+#                            General → Reference ID
+
+on:
+  push:
+    branches:
+      - claude/cold-email-platform-3anvC
+    paths:
+      - "supabase/functions/**"
+      - ".github/workflows/deploy-functions.yml"
+  workflow_dispatch: # manual re-run from the Actions tab
+
+concurrency:
+  group: deploy-functions
+  cancel-in-progress: false # don't mid-deploy a deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail fast if secrets missing
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || { echo "SUPABASE_ACCESS_TOKEN not set"; exit 1; }
+          test -n "$PROJECT_REF"           || { echo "SUPABASE_PROJECT_REF not set"; exit 1; }
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # --- Functions that require a valid user JWT (called from authenticated
+      # app code, not externally).
+      - name: Deploy worker
+        run: supabase functions deploy worker --project-ref "$PROJECT_REF"
+
+      - name: Deploy instantly-sync
+        run: supabase functions deploy instantly-sync --project-ref "$PROJECT_REF"
+
+      # --- Webhook endpoints. Each provider signs the request body or query
+      # string, so we disable JWT auth and do the check inside the function.
+      - name: Deploy webhooks-apify
+        run: supabase functions deploy webhooks-apify --project-ref "$PROJECT_REF" --no-verify-jwt
+
+      - name: Deploy webhooks-instantly
+        run: supabase functions deploy webhooks-instantly --project-ref "$PROJECT_REF" --no-verify-jwt
+
+      - name: Deploy webhooks-signalhire
+        run: supabase functions deploy webhooks-signalhire --project-ref "$PROJECT_REF" --no-verify-jwt
+
+      - name: Summary
+        run: |
+          echo "Deployed: worker, instantly-sync, webhooks-{apify,instantly,signalhire}"
+          echo "Check status at https://supabase.com/dashboard/project/$PROJECT_REF/functions"
