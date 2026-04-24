@@ -142,7 +142,12 @@ function chunk<T>(arr: T[], size: number): T[][] {
 export async function runImport(
   supabase: SupabaseClient<Database>,
   leads: Lead[],
-): Promise<Omit<ImportReport, "totalRows" | "rejected">> {
+): Promise<
+  Omit<ImportReport, "totalRows" | "rejected"> & {
+    linkedinUrls: string[];
+    hashIds: string[];
+  }
+> {
   const { people, companies } = await buildImportRows(leads);
 
   let insertedCompanies = 0;
@@ -175,11 +180,20 @@ export async function runImport(
     }
   }
 
+  const linkedinUrls = Array.from(
+    new Set(people.map((p) => p.linkedin_url).filter((u): u is string => Boolean(u))),
+  );
+  const hashIds = Array.from(
+    new Set(people.map((p) => p.linkedin_hash_id).filter((h): h is string => Boolean(h))),
+  );
+
   return {
     insertedPeople,
     matchedExistingPeople,
     insertedCompanies,
     matchedExistingCompanies,
     linkedCompanies,
+    linkedinUrls,
+    hashIds,
   };
 }

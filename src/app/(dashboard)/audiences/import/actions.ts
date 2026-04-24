@@ -62,10 +62,27 @@ export async function importCsvAction(input: ImportPayload): Promise<ImportActio
   }
 
   try {
-    const counts = await runImport(
+    const { linkedinUrls, hashIds, ...counts } = await runImport(
       supabase,
       mapped.map((m) => m.lead),
     );
+
+    // Link every imported person to this audience. Idempotent on the DB side.
+    if (linkedinUrls.length > 0 || hashIds.length > 0) {
+      const { error: linkErr } = await supabase.rpc("link_audience_members", {
+        p_audience_id: audience.id,
+        p_linkedin_urls: linkedinUrls,
+        p_hash_ids: hashIds,
+      });
+      if (linkErr) {
+        // Non-fatal — people are still in the global table, we just lose the
+        // audience grouping. Surface in the error field so the operator knows.
+        return {
+          ok: false,
+          error: `Import succeeded but linking to audience failed: ${linkErr.message}`,
+        };
+      }
+    }
 
     const report: ImportReport = {
       totalRows: parsed.data.rows.length,
@@ -74,6 +91,7 @@ export async function importCsvAction(input: ImportPayload): Promise<ImportActio
     };
 
     revalidatePath("/audiences");
+    revalidatePath(`/audiences/${audience.id}`);
     revalidatePath("/people");
     revalidatePath("/companies");
     return { ok: true, report, audienceId: audience.id };

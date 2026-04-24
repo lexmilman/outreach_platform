@@ -97,13 +97,15 @@ describe("runImport", () => {
     ];
 
     const counts = await runImport(client, leads);
-    expect(counts).toEqual({
+    expect(counts).toMatchObject({
       insertedCompanies: 2,
       matchedExistingCompanies: 1,
       insertedPeople: 3,
       matchedExistingPeople: 0,
       linkedCompanies: 3,
     });
+    expect(counts.linkedinUrls).toHaveLength(3);
+    expect(counts.hashIds).toHaveLength(0);
 
     // Companies call should come first.
     expect(calls[0]!.name).toBe("bulk_upsert_companies");

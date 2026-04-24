@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelative } from "@/lib/utils";
+import { DeleteAudienceButton } from "@/components/features/audiences/delete-audience-button";
 
 export const dynamic = "force-dynamic";
 
@@ -71,14 +72,19 @@ export default async function AudiencesPage() {
                 <TableHead>Rows</TableHead>
                 <TableHead>Source</TableHead>
                 <TableHead>Imported</TableHead>
+                <TableHead className="w-[60px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {audiences.map((a) => (
                 <TableRow key={a.id}>
-                  <TableCell className="font-medium">{a.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link href={`/audiences/${a.id}`} className="text-brand-500 hover:underline">
+                      {a.name}
+                    </Link>
+                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {a.client_id ? clientById.get(a.client_id) ?? "—" : "—"}
+                    {a.client_id ? (clientById.get(a.client_id) ?? "—") : "—"}
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary">{a.row_count.toLocaleString()}</Badge>
@@ -88,6 +94,9 @@ export default async function AudiencesPage() {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {formatRelative(a.created_at)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DeleteAudienceButton audienceId={a.id} audienceName={a.name} variant="icon" />
                   </TableCell>
                 </TableRow>
               ))}

@@ -185,6 +185,12 @@ export type Database = {
         Update: Record<string, Json>;
         Relationships: [];
       };
+      audience_members: {
+        Row: { audience_id: string; person_id: string; added_at: Ts };
+        Insert: { audience_id: string; person_id: string; added_at?: Ts };
+        Update: Partial<{ audience_id: string; person_id: string; added_at: Ts }>;
+        Relationships: [];
+      };
       job_runs: {
         Row: Record<string, Json>;
         Insert: Record<string, Json>;
@@ -315,6 +321,10 @@ export type Database = {
       list_dlq: {
         Args: { p_limit?: number };
         Returns: { msg_id: number; enqueued_at: string; read_ct: number; message: Json }[];
+      };
+      link_audience_members: {
+        Args: { p_audience_id: string; p_linkedin_urls?: string[]; p_hash_ids?: string[] };
+        Returns: number;
       };
       search_people: {
         Args: { p_text?: string | null; p_org_id?: string | null; p_limit?: number };
