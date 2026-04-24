@@ -24,6 +24,7 @@ import {
   handleScoreLeadLlm,
   handleGenerateMessagesLlm,
 } from "../_shared/handlers-llm.ts";
+import { handleEnrichCustomPerplexity } from "../_shared/handlers-perplexity.ts";
 
 type JobMessage = {
   type: string;
@@ -169,8 +170,12 @@ async function dispatch(
         org_id,
       );
 
-    // TODO(S3.5): perplexity custom research
     case "enrich_custom_perplexity":
+      return handleEnrichCustomPerplexity(
+        supabase,
+        payload as { personId: string; query: string; model?: string },
+        org_id,
+      );
     // TODO(S4): instantly push + sync, full waterfall
     case "push_to_instantly":
     case "sync_instantly_stats":

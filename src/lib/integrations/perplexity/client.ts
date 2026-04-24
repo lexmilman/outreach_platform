@@ -2,9 +2,14 @@ import "server-only";
 import { serverEnv } from "@/lib/env.server";
 import { ValidationError, fetchWithRetry } from "../_shared/http";
 import type { IntegrationResult } from "../_shared/result";
+import { computeCost } from "@/lib/ai/pricing";
 import { PerplexityResponseSchema, type PerplexityModel } from "./schemas";
 
 const BASE = "https://api.perplexity.ai";
+
+function isMock(env = serverEnv()): boolean {
+  return env.MOCK_PERPLEXITY === "1" || !env.PERPLEXITY_API_KEY;
+}
 
 export async function chat(input: {
   model: PerplexityModel;
@@ -16,10 +21,17 @@ export async function chat(input: {
   responseJsonSchema?: Record<string, unknown>;
 }): Promise<IntegrationResult<{ content: string; citations?: string[] }>> {
   const env = serverEnv();
-  if (!env.PERPLEXITY_API_KEY) {
+  if (isMock(env)) {
     return {
-      ok: false,
-      error: new ValidationError("PERPLEXITY_API_KEY not set", "perplexity", null),
+      ok: true,
+      data: {
+        content: `[mock] research summary for: ${input.prompt.slice(0, 60)}`,
+        citations: ["https://example.com/mock-source"],
+      },
+      costUsd: 0,
+      provider: "perplexity",
+      latencyMs: 0,
+      meta: { mock: true },
     };
   }
 
@@ -62,10 +74,19 @@ export async function chat(input: {
   }
 
   const content = parsed.data.choices[0]?.message.content ?? "";
+  const usage = parsed.data.usage;
+  const costUsd = usage
+    ? computeCost({
+        provider: "perplexity",
+        model: input.model,
+        inputTokens: usage.prompt_tokens,
+        outputTokens: usage.completion_tokens,
+      })
+    : 0;
   return {
     ok: true,
     data: { content, citations: parsed.data.citations },
-    costUsd: 0, // TODO(Sprint 3): pricing by model
+    costUsd,
     provider: "perplexity",
     latencyMs: Date.now() - started,
   };
