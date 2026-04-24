@@ -23,8 +23,22 @@ export async function startActorRun(input: {
   body: Record<string, unknown>;
   webhookUrl: string;
   webhookSecret: string;
-}): Promise<{ ok: true; runId: string; datasetId: string } | { ok: false; error: string }> {
+}): Promise<{ ok: true; runId: string; datasetId: string; mock?: boolean } | { ok: false; error: string }> {
   const token = Deno.env.get("APIFY_TOKEN");
+  const isMock = Deno.env.get("MOCK_APIFY") === "1" || !token;
+
+  if (isMock) {
+    // MOCK mode: fabricate a run id so the webhook flow still records the row.
+    // Note: no actual webhook will arrive, so the enrichment row stays pending.
+    // The worker handler picks this up as a "hit" for pipeline testing.
+    return {
+      ok: true,
+      runId: `mock_run_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`,
+      datasetId: `mock_dataset_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`,
+      mock: true,
+    };
+  }
+
   if (!token) return { ok: false, error: "APIFY_TOKEN not set" };
 
   const actor = APIFY_ACTORS[input.actor];

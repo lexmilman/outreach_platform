@@ -32,6 +32,8 @@ export async function handleFindEmailFindymail(
   if (!person.linkedin_url) throw new Error(`person ${payload.personId} has no linkedin_url`);
 
   const apiKey = Deno.env.get("FINDYMAIL_API_KEY");
+  const isMock = Deno.env.get("MOCK_FINDYMAIL") === "1" || !apiKey;
+
   const { data: enrichment } = await supabase
     .from("enrichments")
     .insert({
@@ -39,35 +41,34 @@ export async function handleFindEmailFindymail(
       person_id: person.id,
       provider: "findymail",
       endpoint: "search/linkedin",
-      request_payload: { linkedin_url: person.linkedin_url },
+      request_payload: { linkedin_url: person.linkedin_url, mock: isMock },
       outcome: "pending",
     })
     .select("id")
     .single();
 
-  if (!apiKey) {
-    await supabase
-      .from("enrichments")
-      .update({ outcome: "error", error_message: "FINDYMAIL_API_KEY not set" })
-      .eq("id", enrichment.id);
-    throw new Error("FINDYMAIL_API_KEY not set");
-  }
-
-  const res = await fetch(`${FINDYMAIL_BASE}/api/search/linkedin`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({ linkedin_url: person.linkedin_url }),
-  });
-
   let email: string | null = null;
   let cost = 0;
-  if (res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { contact?: { email?: string } | null };
-    email = body.contact?.email ?? null;
-    cost = email ? 0.015 : 0;
+  if (isMock) {
+    // Fabricate a 100% hit so the full pipeline (verify, score, messages)
+    // can be exercised without a real FindyMail account.
+    const domain = "example.com";
+    const local = (person.first_name ?? "mock").toLowerCase().replace(/[^a-z0-9]/g, "");
+    email = `${local}.${(person.last_name ?? "prospect").toLowerCase().replace(/[^a-z0-9]/g, "")}@${domain}`;
+  } else {
+    const res = await fetch(`${FINDYMAIL_BASE}/api/search/linkedin`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({ linkedin_url: person.linkedin_url }),
+    });
+    if (res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { contact?: { email?: string } | null };
+      email = body.contact?.email ?? null;
+      cost = email ? 0.015 : 0;
+    }
   }
 
   await supabase.rpc("findymail_finalize", {
@@ -113,9 +114,7 @@ export async function handleFindEmailSignalhire(
   const apiKey = Deno.env.get("SIGNALHIRE_API_KEY");
   const callbackSecret = Deno.env.get("SIGNALHIRE_CALLBACK_SECRET");
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  if (!apiKey || !callbackSecret || !supabaseUrl) {
-    throw new Error("SIGNALHIRE secrets or SUPABASE_URL missing");
-  }
+  const isMock = Deno.env.get("MOCK_SIGNALHIRE") === "1" || !apiKey;
 
   const { data: enrichment } = await supabase
     .from("enrichments")
@@ -124,11 +123,39 @@ export async function handleFindEmailSignalhire(
       person_id: person.id,
       provider: "signalhire",
       endpoint: "candidate/search",
-      request_payload: { items: [person.linkedin_url] },
+      request_payload: { items: [person.linkedin_url], mock: isMock },
       outcome: "pending",
     })
     .select("id")
     .single();
+
+  if (isMock) {
+    // Short-circuit: finalize synchronously with a stub email so the pipeline
+    // continues. No webhook roundtrip in MOCK.
+    const local = `mock.${(person.id ?? "p").slice(0, 8)}`;
+    const stubEmail = `${local}@example.com`;
+    await supabase.rpc("signalhire_finalize_item", {
+      p_enrichment_id: enrichment.id,
+      p_status: "success",
+      p_emails: [{ value: stubEmail, type: "work" }],
+      p_run_cost_usd: 0,
+    });
+    // Auto-chain verify (mirrors real webhook path).
+    const { data: emailRow } = await supabase
+      .from("emails")
+      .select("id")
+      .eq("person_id", person.id)
+      .eq("email", stubEmail)
+      .single();
+    if (emailRow) {
+      await enqueueJob(supabase, "verify_email_instantly", { emailId: emailRow.id }, orgId);
+    }
+    return { dispatched: true, mock: true, email: stubEmail };
+  }
+
+  if (!callbackSecret || !supabaseUrl) {
+    throw new Error("SIGNALHIRE_CALLBACK_SECRET or SUPABASE_URL missing");
+  }
 
   const callbackUrl = `${supabaseUrl}/functions/v1/webhooks-signalhire?secret=${encodeURIComponent(
     callbackSecret,
@@ -138,7 +165,7 @@ export async function handleFindEmailSignalhire(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      apikey: apiKey,
+      apikey: apiKey!,
     },
     body: JSON.stringify({ items: [person.linkedin_url], callbackUrl }),
   });
@@ -192,6 +219,8 @@ export async function handleVerifyEmailInstantly(
   if (error || !row) throw new Error(`email ${payload.emailId} not found`);
 
   const apiKey = Deno.env.get("INSTANTLY_API_KEY");
+  const isMock = Deno.env.get("MOCK_INSTANTLY") === "1" || !apiKey;
+
   const { data: enrichment } = await supabase
     .from("enrichments")
     .insert({
@@ -199,39 +228,36 @@ export async function handleVerifyEmailInstantly(
       person_id: row.person_id,
       provider: "instantly",
       endpoint: "email-verification",
-      request_payload: { email: row.email },
+      request_payload: { email: row.email, mock: isMock },
       outcome: "pending",
     })
     .select("id")
     .single();
 
-  if (!apiKey) {
-    await supabase
-      .from("enrichments")
-      .update({ outcome: "error", error_message: "INSTANTLY_API_KEY not set" })
-      .eq("id", enrichment.id);
-    throw new Error("INSTANTLY_API_KEY not set");
+  let status = "valid";
+  let cost = 0;
+  if (!isMock) {
+    const res = await fetch(`${INSTANTLY_BASE}/api/v2/email-verification`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({ email: row.email }),
+    });
+    const body = (await res.json().catch(() => ({}))) as { verification_status?: string };
+    status = body.verification_status ?? "unknown";
+    cost = res.ok ? 0.0025 : 0;
   }
-
-  const res = await fetch(`${INSTANTLY_BASE}/api/v2/email-verification`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({ email: row.email }),
-  });
-  const body = (await res.json().catch(() => ({}))) as { verification_status?: string };
-  const status = body.verification_status ?? "unknown";
 
   await supabase.rpc("instantly_verify_finalize", {
     p_enrichment_id: enrichment.id,
     p_email_id: row.id,
     p_status: status,
-    p_run_cost_usd: res.ok ? 0.0025 : 0,
+    p_run_cost_usd: cost,
   });
 
-  return { status };
+  return { status, mock: isMock };
 }
 
 // ---------- Helpers ----------

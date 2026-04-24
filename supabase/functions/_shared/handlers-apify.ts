@@ -68,7 +68,93 @@ async function startAndRecord(
     .update({ provider_request_id: run.runId })
     .eq("id", enrichment.id);
 
-  return { runId: run.runId, datasetId: run.datasetId, enrichmentId: enrichment.id };
+  // In MOCK mode no webhook will ever land, so we finalize here with a stub
+  // response. Lets the full pipeline (auto-chain to email-finder, etc.)
+  // exercise without the operator paying Apify.
+  if (run.mock) {
+    const stubItem = buildMockDatasetItem(args.actorKind);
+    if (args.actorKind === "personProfile") {
+      await supabase.rpc("apify_finalize_person", {
+        p_enrichment_id: enrichment.id,
+        p_item: stubItem,
+        p_run_cost_usd: 0,
+      });
+    } else if (args.actorKind === "companyProfile") {
+      await supabase.rpc("apify_finalize_company", {
+        p_enrichment_id: enrichment.id,
+        p_item: stubItem,
+        p_run_cost_usd: 0,
+      });
+    } else if (args.actorKind === "profilePosts") {
+      await supabase.rpc("apify_finalize_posts", {
+        p_enrichment_id: enrichment.id,
+        p_items: [stubItem],
+        p_run_cost_usd: 0,
+      });
+    }
+    // Auto-chain follow-up for person enrichment (mirrors real webhook behavior).
+    if (args.actorKind === "personProfile" && args.personId) {
+      await supabase.rpc("pgmq_send", {
+        queue_name: "jobs",
+        msg: {
+          type: "find_email_findymail",
+          payload: { personId: args.personId },
+          org_id: args.orgId,
+          job_id: crypto.randomUUID(),
+        },
+      });
+    }
+  }
+
+  return {
+    runId: run.runId,
+    datasetId: run.datasetId,
+    enrichmentId: enrichment.id,
+    mock: run.mock ?? false,
+  };
+}
+
+function buildMockDatasetItem(kind: ApifyActorKey): Record<string, unknown> {
+  if (kind === "personProfile") {
+    return {
+      linkedinUrl: "https://www.linkedin.com/in/mock-prospect",
+      firstName: "Mock",
+      lastName: "Prospect",
+      fullName: "Mock Prospect",
+      headline: "[MOCK] VP Engineering at Acme Corp",
+      about: "[MOCK] Placeholder about — replace with real Apify run.",
+      location: "San Francisco Bay Area",
+      country: "US",
+      currentPosition: "VP of Engineering",
+      companyName: "Acme Corp",
+      companyLinkedinUrl: "https://www.linkedin.com/company/acme",
+      companyWebsite: "https://acme.com",
+      succeeded: true,
+    };
+  }
+  if (kind === "companyProfile") {
+    return {
+      linkedinUrl: "https://www.linkedin.com/company/acme",
+      name: "Acme Corp",
+      tagline: "[MOCK] Building platforms at scale",
+      description: "[MOCK] Placeholder company description.",
+      industry: "Software Development",
+      employeeCount: 250,
+      website: "https://acme.com",
+      hqCity: "San Francisco",
+      hqCountry: "United States",
+      succeeded: true,
+    };
+  }
+  return {
+    authorLinkedinUrl: "https://www.linkedin.com/in/mock-prospect",
+    postUrl: "https://www.linkedin.com/feed/update/urn:li:activity:mock",
+    postedAt: new Date().toISOString(),
+    text: "[MOCK] Sample LinkedIn post content for fixture purposes.",
+    likes: 42,
+    comments: 7,
+    reshares: 3,
+  };
 }
 
 export async function handleEnrichPersonApify(

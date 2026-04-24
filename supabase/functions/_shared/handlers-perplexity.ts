@@ -29,6 +29,8 @@ export async function handleEnrichCustomPerplexity(
   if (error || !person) throw new Error(`person ${payload.personId} not found`);
 
   const apiKey = Deno.env.get("PERPLEXITY_API_KEY");
+  const isMock = Deno.env.get("MOCK_PERPLEXITY") === "1" || !apiKey;
+
   const { data: enrichment } = await supabase
     .from("enrichments")
     .insert({
@@ -36,18 +38,21 @@ export async function handleEnrichCustomPerplexity(
       person_id: person.id,
       provider: "perplexity",
       endpoint: "chat/completions",
-      request_payload: { query: payload.query, model: payload.model ?? DEFAULT_MODEL },
+      request_payload: { query: payload.query, model: payload.model ?? DEFAULT_MODEL, mock: isMock },
       outcome: "pending",
     })
     .select("id")
     .single();
 
-  if (!apiKey) {
-    await supabase
-      .from("enrichments")
-      .update({ outcome: "error", error_message: "PERPLEXITY_API_KEY not set" })
-      .eq("id", enrichment.id);
-    throw new Error("PERPLEXITY_API_KEY not set");
+  if (isMock) {
+    const stubContent = `[MOCK] Research stub for: ${payload.query.slice(0, 80)}`;
+    await supabase.rpc("perplexity_finalize", {
+      p_enrichment_id: enrichment.id,
+      p_content: stubContent,
+      p_citations: ["https://example.com/mock-source"],
+      p_run_cost_usd: 0,
+    });
+    return { length: stubContent.length, citations: 1, costUsd: 0, mock: true };
   }
 
   const model = payload.model ?? DEFAULT_MODEL;

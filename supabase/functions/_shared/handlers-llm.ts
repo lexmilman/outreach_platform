@@ -228,6 +228,31 @@ export async function handleScoreLeadLlm(
   const prompt = await loadActivePrompt(supabase, input.client_id, "relevance");
   const model = await modelFor(supabase, orgId, "scoring");
 
+  // No real LLM key yet → stub a high-tier score so the auto-chain to
+  // message generation also fires. Lets the operator exercise the full
+  // enrich → score → generate messages → push pipeline without any LLM cost.
+  if (!Deno.env.get("ANTHROPIC_API_KEY")) {
+    await supabase.rpc("score_lead_finalize", {
+      p_pic_id: payload.personInCampaignId,
+      p_score: 75,
+      p_tier: "high",
+      p_reasons: ["[MOCK] ANTHROPIC_API_KEY not set", "Pipeline stub — add key to go live"],
+      p_prompt_version_id: prompt.id,
+      p_run_cost_usd: 0,
+    });
+    // Auto-chain messages (mirrors the real path when score >= 70).
+    await supabase.rpc("pgmq_send", {
+      queue_name: "jobs",
+      msg: {
+        type: "generate_messages_llm",
+        payload: { personInCampaignId: payload.personInCampaignId },
+        org_id: orgId,
+        job_id: crypto.randomUUID(),
+      },
+    });
+    return { score: 75, tier: "high", costUsd: 0, cachedTokens: 0, mock: true };
+  }
+
   const result = await callAnthropicJson({
     model,
     system: prompt.system,
@@ -275,6 +300,30 @@ export async function handleGenerateMessagesLlm(
   const input = await loadInput(supabase, payload.personInCampaignId);
   const prompt = await loadActivePrompt(supabase, input.client_id, "messages");
   const model = await modelFor(supabase, orgId, "messages");
+
+  // No LLM key → stub the 4-body message sequence.
+  if (!Deno.env.get("ANTHROPIC_API_KEY")) {
+    const stub = {
+      subject: `[MOCK] quick idea for ${input.full_name ?? "you"}`,
+      bodies: [1, 2, 3, 4].map((step) => ({
+        step,
+        body:
+          `[MOCK step ${step}] Placeholder body for ${input.full_name ?? "prospect"} at ${input.company_name ?? "unknown"}. ` +
+          `Replace with real output once ANTHROPIC_API_KEY is set. ` +
+          `Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`,
+      })),
+      personalization: `[MOCK] Pipeline stub — no LLM call. Each step replaces the {{email_copy_N}} token in the sequence template.`,
+    };
+    await supabase.rpc("generate_messages_finalize", {
+      p_pic_id: payload.personInCampaignId,
+      p_subject: stub.subject,
+      p_bodies: stub.bodies,
+      p_personalization: stub.personalization,
+      p_prompt_version_id: prompt.id,
+      p_run_cost_usd: 0,
+    });
+    return { subject: stub.subject, bodyCount: 4, costUsd: 0, cachedTokens: 0, mock: true };
+  }
 
   const result = await callAnthropicJson({
     model,
