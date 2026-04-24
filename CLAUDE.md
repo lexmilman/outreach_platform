@@ -64,9 +64,20 @@ Single user (agency operator) managing N client campaigns. All background work o
 
 ### Git workflow
 - **Conventional commits**: `feat:` `fix:` `chore:` `docs:` `refactor:` `test:` `perf:`. Subject ≤72 chars, imperative.
-- Solo dev: `main` = prod. Direct commits to `main` for small changes; short-lived `feat/*` branch for risky multi-day work.
+- **Production branch**: `claude/cold-email-platform-3anvC` (Vercel's "Production" in this repo — there is no `main`). Commit and push **directly** to this branch. No feature branches, no PRs, no merging.
+- If a previous session left behind a `claude/<slug>` feature branch, fast-forward merge it into the production branch and keep committing there.
 - **Auto-push after every successful milestone** via the `/ship "feat(scope): …"` slash command. The command runs `pnpm lint && pnpm typecheck && pnpm test`; only commits + pushes if all pass.
-- Never force-push `main`.
+- Never force-push the production branch.
+
+### Operator profile — read this before any non-trivial work
+The person behind the keyboard is the agency operator, **not a programmer**. Tune your output accordingly:
+- **Plain language**. No jargon unless you define it in the same sentence. "PostgREST schema cache" → "the API layer that caches function signatures; Supabase reloads it automatically after DDL".
+- **Step-by-step, copy-pasteable**. When you need them to run something, give the exact click path or SQL block. Never assume they'll figure out the right CLI flag.
+- **Show, don't just tell**. After a non-trivial change, tell them exactly what to look at (URL, SQL query, Dashboard panel) and what "good" looks like.
+- **Verify on the running app, not in your head**. The operator cannot read code. Unit tests passing does NOT equal feature working. Always end a feature with: "open `<URL>`, do `<action>`, you should see `<outcome>`".
+- **When something goes wrong, explain the root cause in 2-3 sentences** before fixing. They want to understand, not just see the diff.
+- **Prefer SQL in the Dashboard SQL Editor over local CLI**. They haven't set up `supabase` CLI locally. For migrations, always generate a ready-to-paste `scripts/hotfix-<name>.sql` alongside the migration file.
+- **No local Edge Function deploys** without explicit opt-in. When code needs Edge Functions updated, either: (a) set up GitHub Actions so it deploys on push, or (b) give them inline Dashboard-paste instructions. Do not ask them to run `supabase functions deploy`.
 
 ### Code style
 - ESM only, `import` syntax.
