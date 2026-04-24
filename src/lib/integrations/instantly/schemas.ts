@@ -29,6 +29,32 @@ export const InstantlyBulkAddRequestSchema = z.object({
   leads: z.array(InstantlyLeadAddItemSchema),
 });
 
+export const InstantlySequenceStepSchema = z.object({
+  step: z.number().int().min(1).max(10),
+  delay_days: z.number().int().min(0).max(90),
+  subject: z.string().min(1),
+  body: z.string().min(1),
+});
+export type InstantlySequenceStep = z.infer<typeof InstantlySequenceStepSchema>;
+
+export const InstantlyCampaignCreateRequestSchema = z.object({
+  name: z.string().min(1).max(200),
+  sequences: z.array(
+    z.object({
+      steps: z.array(InstantlySequenceStepSchema).min(1).max(10),
+    }),
+  ),
+});
+export type InstantlyCampaignCreateRequest = z.infer<typeof InstantlyCampaignCreateRequestSchema>;
+
+export const InstantlyCampaignCreateResponseSchema = z
+  .object({
+    id: z.string(),
+    name: z.string().optional(),
+    status: z.string().optional(),
+  })
+  .passthrough();
+
 export const InstantlyAnalyticsOverviewSchema = z
   .object({
     campaign_id: z.string(),
@@ -57,6 +83,7 @@ export const InstantlyWebhookEventSchema = z
       "lead_interested",
       "lead_meeting_booked",
       "campaign_completed",
+      "email_sent",
     ]),
     timestamp: z.string(),
     campaign_id: z.string().optional(),

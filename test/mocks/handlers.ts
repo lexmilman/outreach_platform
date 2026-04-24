@@ -67,6 +67,9 @@ export const handlers = [
   ),
 
   // Instantly
+  http.post("https://api.instantly.ai/api/v2/campaigns", () =>
+    HttpResponse.json({ id: "camp_created_test_1", name: "Test", status: "draft" }),
+  ),
   http.post("https://api.instantly.ai/api/v2/leads/add", () =>
     HttpResponse.json({ added: 1 }),
   ),

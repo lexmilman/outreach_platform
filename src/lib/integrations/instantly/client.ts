@@ -5,7 +5,11 @@ import type { IntegrationResult } from "../_shared/result";
 import {
   InstantlyBulkAddRequestSchema,
   InstantlyAnalyticsOverviewSchema,
+  InstantlyCampaignCreateRequestSchema,
+  InstantlyCampaignCreateResponseSchema,
+  type InstantlyCampaignCreateRequest,
   type InstantlyLeadAddItem,
+  type InstantlySequenceStep,
 } from "./schemas";
 
 const BASE = "https://api.instantly.ai";
@@ -102,6 +106,62 @@ export async function bulkAddLeads(input: {
   };
 }
 
+export async function createCampaign(
+  input: InstantlyCampaignCreateRequest,
+): Promise<IntegrationResult<{ campaignId: string; raw: unknown }>> {
+  const env = serverEnv();
+  const valid = InstantlyCampaignCreateRequestSchema.safeParse(input);
+  if (!valid.success) {
+    return {
+      ok: false,
+      error: new ValidationError("Instantly campaign payload invalid", "instantly", valid.error.issues),
+    };
+  }
+
+  if (isMock(env)) {
+    const mockId = `mock_camp_${Math.random().toString(36).slice(2, 10)}`;
+    return {
+      ok: true,
+      data: { campaignId: mockId, raw: { id: mockId, name: input.name, status: "draft" } },
+      costUsd: 0,
+      provider: "instantly",
+      latencyMs: 0,
+      meta: { mock: true },
+    };
+  }
+
+  const started = Date.now();
+  const res = await fetchWithRetry(
+    `${BASE}/api/v2/campaigns`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${env.INSTANTLY_API_KEY}`,
+      },
+      body: JSON.stringify(valid.data),
+    },
+    { provider: "instantly" },
+  );
+
+  const json = await res.json();
+  const parsed = InstantlyCampaignCreateResponseSchema.safeParse(json);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: new ValidationError("Instantly campaign response shape changed", "instantly", parsed.error.issues),
+    };
+  }
+
+  return {
+    ok: true,
+    data: { campaignId: parsed.data.id, raw: parsed.data },
+    costUsd: 0,
+    provider: "instantly",
+    latencyMs: Date.now() - started,
+  };
+}
+
 export async function getCampaignAnalyticsOverview(
   campaignId: string,
 ): Promise<IntegrationResult<ReturnType<typeof InstantlyAnalyticsOverviewSchema.parse>>> {
@@ -155,4 +215,30 @@ export async function getCampaignAnalyticsOverview(
     provider: "instantly",
     latencyMs: Date.now() - started,
   };
+}
+
+// --- Template substitution helpers ---------------------------------------
+// Sequence templates hold {{placeholder}} tokens (e.g. {{email_copy_1}}).
+// When pushing leads, the worker renders a per-campaign sequence by filling
+// those tokens with the generated message_sequences row for the lead.
+// For *creation* of a campaign we upload the template as-is: Instantly keeps
+// the {{placeholder}} tokens and maps them to custom_variables at send time.
+
+export function renderSequenceStep(
+  step: InstantlySequenceStep,
+  tokens: Record<string, string | null | undefined>,
+): InstantlySequenceStep {
+  return {
+    step: step.step,
+    delay_days: step.delay_days,
+    subject: substitute(step.subject, tokens),
+    body: substitute(step.body, tokens),
+  };
+}
+
+function substitute(template: string, tokens: Record<string, string | null | undefined>): string {
+  return template.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (_match, key: string) => {
+    const v = tokens[key];
+    return v == null ? "" : String(v);
+  });
 }

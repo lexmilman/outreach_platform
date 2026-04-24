@@ -25,6 +25,11 @@ import {
   handleGenerateMessagesLlm,
 } from "../_shared/handlers-llm.ts";
 import { handleEnrichCustomPerplexity } from "../_shared/handlers-perplexity.ts";
+import {
+  handleInstantlyCreateCampaign,
+  handlePushToInstantly,
+  handleSyncInstantlyStats,
+} from "../_shared/handlers-instantly.ts";
 
 type JobMessage = {
   type: string;
@@ -176,9 +181,26 @@ async function dispatch(
         payload as { personId: string; query: string; model?: string },
         org_id,
       );
-    // TODO(S4): instantly push + sync, full waterfall
+    case "instantly_create_campaign":
+      return handleInstantlyCreateCampaign(
+        supabase,
+        payload as { campaignId: string },
+        org_id,
+      );
     case "push_to_instantly":
+      return handlePushToInstantly(
+        supabase,
+        payload as { campaignId: string; personInCampaignIds: string[] },
+        org_id,
+      );
     case "sync_instantly_stats":
+      return handleSyncInstantlyStats(
+        supabase,
+        payload as { campaignId?: string },
+        org_id,
+      );
+
+    // Full multi-tier waterfall is Sprint 5+; today we noop to keep the queue drained.
     case "waterfall_escalate":
     // CSV import is handled synchronously today; reserved for future async path.
     case "csv_import":

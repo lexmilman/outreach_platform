@@ -26,17 +26,17 @@
 - [x] **S3.5** Perplexity custom research (`enrich_custom_perplexity`) — sonar-pro, citations preserved, merged into `people.data_json`.
 - [x] **S3.6** Node integration test for the email waterfall (`src/lib/integrations/_scenarios/email-waterfall.test.ts`); `e2e/enrichment-run.spec.ts` shell behind .fixme() until `TEST_SUPABASE_*` is provisioned.
 - [x] **S3.7** Bulk-enrichment toolbar on `/people` (Run on next N people without prior Apify enrichment).
-- [ ] `/ship "feat: enrichment + scoring + message generation"`
+- [x] `/ship "feat: enrichment + scoring + message generation"`
 
 **Deferred to Sprint 4+:** waterfall_escalate handler (full multi-tier with parent/child campaigns), enrichment diff-viewer (before/after side-by-side), prompt management UI with A/B testing, per-org plan-rate config for credit pricing.
 
 ## Sprint 4 — Push to Instantly + analytics (MVP ships)
-- [ ] Create Instantly campaign from UI (with sequence templates)
-- [ ] Bulk push leads with custom variables
-- [ ] Daily Instantly analytics sync
-- [ ] Analytics dashboard (per-client + per-campaign)
-- [ ] Cost tracking breakdown
-- [ ] Playwright smoke tests green
+- [x] **S4.1** `sequence_templates` table + Instantly `createCampaign` client + worker `instantly_create_campaign` + `/campaigns` list + `/campaigns/new` wizard + `/campaigns/[id]` detail.
+- [x] **S4.2** `list_pushable_leads` RPC + `push_to_instantly` worker handler (renders custom variables from `message_sequences`) + `mark_leads_pushed` transactional finalize + bulk-push panel on campaign page.
+- [x] **S4.3** `webhooks-instantly` handler: auth, dedupe, `replies` upsert on reply events, `people_in_campaign.status` transitions, per-event `analytics_snapshots` counter increments.
+- [x] **S4.4** `instantly-sync` Edge Function writes today's snapshot per running campaign. Cron entry was already scheduled in `00000000000004_cron.sql` ("instantly-daily-sync"). `syncCampaignStatsAction` lets the operator trigger a sync on demand.
+- [x] **S4.5** `v_campaign_kpis` view + `analytics_summary` RPC + `/analytics` dashboard (client filter, date range, KPIs, daily bars, cost-by-provider breakdown, top campaigns table).
+- [x] **S4.6** `e2e/push-instantly.spec.ts` scenario (behind `.fixme()` until `TEST_SUPABASE_*` is provisioned, same pattern as `enrichment-run.spec.ts`).
 - [ ] `/ship "feat: instantly push + analytics — MVP complete"`
 
 ## Sprint 5+ — Full phase

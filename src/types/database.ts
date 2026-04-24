@@ -69,29 +69,119 @@ export type Database = {
           id: string;
           org_id: string;
           client_id: string;
+          audience_id: string | null;
           name: string;
+          instantly_campaign_id: string | null;
           status: string;
           tier: number;
+          parent_campaign_id: string | null;
+          config: Json;
           created_at: Ts;
+          updated_at: Ts;
         };
         Insert: {
           id?: string;
           org_id: string;
           client_id: string;
+          audience_id?: string | null;
           name: string;
+          instantly_campaign_id?: string | null;
           status?: string;
           tier?: number;
+          parent_campaign_id?: string | null;
+          config?: Json;
           created_at?: Ts;
+          updated_at?: Ts;
         };
-        Update: {
+        Update: Partial<{
+          id: string;
+          org_id: string;
+          client_id: string;
+          audience_id: string | null;
+          name: string;
+          instantly_campaign_id: string | null;
+          status: string;
+          tier: number;
+          parent_campaign_id: string | null;
+          config: Json;
+          created_at: Ts;
+          updated_at: Ts;
+        }>;
+        Relationships: [];
+      };
+      sequence_templates: {
+        Row: {
+          id: string;
+          org_id: string;
+          client_id: string | null;
+          name: string;
+          description: string | null;
+          steps: Json;
+          is_default: boolean;
+          created_at: Ts;
+          updated_at: Ts;
+        };
+        Insert: {
           id?: string;
-          org_id?: string;
-          client_id?: string;
-          name?: string;
-          status?: string;
-          tier?: number;
+          org_id: string;
+          client_id?: string | null;
+          name: string;
+          description?: string | null;
+          steps?: Json;
+          is_default?: boolean;
           created_at?: Ts;
+          updated_at?: Ts;
         };
+        Update: Partial<{
+          id: string;
+          org_id: string;
+          client_id: string | null;
+          name: string;
+          description: string | null;
+          steps: Json;
+          is_default: boolean;
+          created_at: Ts;
+          updated_at: Ts;
+        }>;
+        Relationships: [];
+      };
+      message_sequences: {
+        Row: Record<string, Json>;
+        Insert: Record<string, Json>;
+        Update: Record<string, Json>;
+        Relationships: [];
+      };
+      analytics_snapshots: {
+        Row: Record<string, Json>;
+        Insert: Record<string, Json>;
+        Update: Record<string, Json>;
+        Relationships: [];
+      };
+      instantly_sync_state: {
+        Row: {
+          campaign_id: string;
+          last_sync_at: Ts | null;
+          last_cursor: string | null;
+          stats: Json;
+        };
+        Insert: {
+          campaign_id: string;
+          last_sync_at?: Ts | null;
+          last_cursor?: string | null;
+          stats?: Json;
+        };
+        Update: Partial<{
+          campaign_id: string;
+          last_sync_at: Ts | null;
+          last_cursor: string | null;
+          stats: Json;
+        }>;
+        Relationships: [];
+      };
+      cost_tracking: {
+        Row: Record<string, Json>;
+        Insert: Record<string, Json>;
+        Update: Record<string, Json>;
         Relationships: [];
       };
       people: {
@@ -250,6 +340,29 @@ export type Database = {
       };
     };
     Views: {
+      v_campaign_kpis: {
+        Row: {
+          campaign_id: string;
+          org_id: string;
+          client_id: string;
+          campaign_name: string;
+          campaign_status: string;
+          sent: number;
+          opened: number;
+          replied: number;
+          positive_replied: number;
+          bounced: number;
+          unsubscribed: number;
+          clicked: number;
+          meetings: number;
+          usd_cost: number;
+          open_rate_pct: number;
+          reply_rate_pct: number;
+          positive_rate_pct: number;
+          usd_per_reply: number | null;
+        };
+        Relationships: [];
+      };
       v_people_with_company: {
         Row: {
           id: string;
@@ -334,6 +447,53 @@ export type Database = {
       search_people: {
         Args: { p_text?: string | null; p_org_id?: string | null; p_limit?: number };
         Returns: Record<string, Json>[];
+      };
+      list_pushable_leads: {
+        Args: { p_campaign_id: string; p_limit?: number };
+        Returns: {
+          person_in_campaign_id: string;
+          person_id: string;
+          email: string;
+          first_name: string | null;
+          last_name: string | null;
+          company_name: string | null;
+          subject: string | null;
+          email_copy_1: string | null;
+          email_copy_2: string | null;
+          email_copy_3: string | null;
+          email_copy_4: string | null;
+          personalization: string | null;
+          waterfall_lead_id: string | null;
+          tier: number | null;
+          linkedin_url: string | null;
+          current_title: string | null;
+          location: string | null;
+        }[];
+      };
+      mark_leads_pushed: {
+        Args: { p_campaign_id: string; p_ids: string[] };
+        Returns: number;
+      };
+      analytics_summary: {
+        Args: { p_client_id?: string | null; p_from?: string; p_to?: string };
+        Returns: {
+          total_sent: number;
+          total_opened: number;
+          total_replied: number;
+          total_positive: number;
+          total_meetings: number;
+          total_cost: number;
+          open_rate_pct: number;
+          reply_rate_pct: number;
+          positive_rate_pct: number;
+          usd_per_reply: number | null;
+          provider_costs: Json;
+          daily_series: Json;
+        }[];
+      };
+      bootstrap_sequence_templates: {
+        Args: Record<string, never>;
+        Returns: number;
       };
     };
     Enums: Record<never, never>;

@@ -22,6 +22,40 @@ flowchart TD
   DB --> RT
 ```
 
+## Instantly push + analytics (Sprint 4)
+
+```mermaid
+flowchart LR
+  UI[/campaigns/new/] -->|Server Action| SA[createCampaignAction]
+  SA --> Q1[(enqueue instantly_create_campaign)]
+  Q1 --> W1[Worker: handleInstantlyCreateCampaign]
+  W1 -->|POST /api/v2/campaigns| IN[Instantly]
+  W1 -->|set instantly_campaign_id| CAMP[(campaigns)]
+
+  UI2[Campaign detail] -->|push button| SA2[pushLeadsToInstantlyAction]
+  SA2 --> RPC1[list_pushable_leads RPC]
+  SA2 --> Q2[(enqueue push_to_instantly)]
+  Q2 --> W2[Worker: handlePushToInstantly]
+  W2 -->|POST /api/v2/leads/add| IN
+  W2 --> RPC2[mark_leads_pushed RPC]
+
+  CRON[pg_cron 05:00 UTC] --> IS[Edge Fn: instantly-sync]
+  IS --> W3[handleSyncInstantlyStats]
+  W3 -->|GET analytics overview| IN
+  W3 --> AS[(analytics_snapshots)]
+
+  IN -->|events| WH[Edge Fn: webhooks-instantly]
+  WH --> REP[(replies)]
+  WH --> AS
+  WH --> PIC[(people_in_campaign.status)]
+
+  AS --> VKP[(v_campaign_kpis)]
+  VKP --> DASH[/analytics/]
+  COST[(cost_tracking)] --> DASH
+```
+
+`sequence_templates` rows hold `{subject, body, delay_days}` steps with `{{token}}` placeholders. The worker uploads the template to Instantly on campaign creation; `{{subject}}`, `{{email_copy_1..4}}`, `{{personalization}}` are filled per-lead at send time from `custom_variables` passed in `POST /api/v2/leads/add`. Our `v_campaign_kpis` view hides the cross-join between `analytics_snapshots` and `cost_tracking` behind `security_invoker=true` so campaign RLS still applies when the dashboard reads it.
+
 ## CSV import pipeline (Sprint 2)
 
 ```mermaid

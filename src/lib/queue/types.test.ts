@@ -4,9 +4,9 @@ import { JOB_TYPES, JobMessageSchema } from "./types";
 const UUID = "00000000-0000-0000-0000-000000000001";
 
 describe("JobMessageSchema", () => {
-  it("enumerates all 13 job types", () => {
-    expect(JOB_TYPES).toHaveLength(13);
-    expect(new Set(JOB_TYPES).size).toBe(13);
+  it("enumerates all 14 job types", () => {
+    expect(JOB_TYPES).toHaveLength(14);
+    expect(new Set(JOB_TYPES).size).toBe(14);
   });
 
   it("accepts a valid enrich_person_apify message", () => {

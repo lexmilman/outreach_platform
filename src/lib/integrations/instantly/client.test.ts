@@ -76,4 +76,56 @@ describe("instantly client", () => {
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.data.added).toBe(3);
   });
+
+  it("createCampaign returns the id from the API", async () => {
+    const { createCampaign } = await import("./client");
+    const res = await createCampaign({
+      name: "Sprint 4 smoke",
+      sequences: [
+        {
+          steps: [
+            { step: 1, delay_days: 0, subject: "{{subject}}", body: "{{email_copy_1}}" },
+            { step: 2, delay_days: 3, subject: "re: {{subject}}", body: "{{email_copy_2}}" },
+          ],
+        },
+      ],
+    });
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data.campaignId).toBe("camp_created_test_1");
+    }
+  });
+
+  it("createCampaign MOCK short-circuits to a generated id", async () => {
+    process.env.MOCK_INSTANTLY = "1";
+    const { createCampaign } = await import("./client");
+    const res = await createCampaign({
+      name: "mock",
+      sequences: [{ steps: [{ step: 1, delay_days: 0, subject: "s", body: "b" }] }],
+    });
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data.campaignId).toMatch(/^mock_camp_/);
+      expect(res.meta?.mock).toBe(true);
+    }
+  });
+
+  it("createCampaign rejects payloads that fail validation", async () => {
+    const { createCampaign } = await import("./client");
+    const res = await createCampaign({
+      name: "",
+      sequences: [],
+    } as never);
+    expect(res.ok).toBe(false);
+  });
+
+  it("renderSequenceStep substitutes {{tokens}}", async () => {
+    const { renderSequenceStep } = await import("./client");
+    const out = renderSequenceStep(
+      { step: 1, delay_days: 0, subject: "Hey {{first_name}}", body: "{{email_copy_1}} ciao" },
+      { first_name: "Jane", email_copy_1: "Body" },
+    );
+    expect(out.subject).toBe("Hey Jane");
+    expect(out.body).toBe("Body ciao");
+  });
 });

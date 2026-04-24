@@ -50,6 +50,10 @@ export const EnrichCustomPerplexityPayload = z.object({
   query: z.string().min(3).max(2000),
 });
 
+export const InstantlyCreateCampaignPayload = z.object({
+  campaignId: Uuid,
+});
+
 export const PushToInstantlyPayload = z.object({
   campaignId: Uuid,
   personInCampaignIds: z.array(Uuid).min(1).max(1000),
@@ -77,6 +81,7 @@ export const JobMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("score_lead_llm"), payload: ScoreLeadLlmPayload }),
   z.object({ type: z.literal("generate_messages_llm"), payload: GenerateMessagesLlmPayload }),
   z.object({ type: z.literal("enrich_custom_perplexity"), payload: EnrichCustomPerplexityPayload }),
+  z.object({ type: z.literal("instantly_create_campaign"), payload: InstantlyCreateCampaignPayload }),
   z.object({ type: z.literal("push_to_instantly"), payload: PushToInstantlyPayload }),
   z.object({ type: z.literal("sync_instantly_stats"), payload: SyncInstantlyStatsPayload }),
   z.object({ type: z.literal("waterfall_escalate"), payload: WaterfallEscalatePayload }),
