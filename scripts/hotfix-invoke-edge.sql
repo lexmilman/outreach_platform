@@ -6,7 +6,14 @@
 -- at runtime, so pg_net never actually POSTs to /functions/v1/worker and
 -- the queue just piles up.
 --
+-- Postgres rejects CREATE OR REPLACE when only parameter names change,
+-- so we drop the old signature first. cron.schedule stores the command
+-- as plain text ("select private.invoke_edge('worker', ...)") and re-
+-- resolves the function name each tick, so the cron job keeps working.
+--
 -- Paste into SQL Editor and Run. Safe to re-run.
+
+drop function if exists private.invoke_edge(text, jsonb);
 
 create or replace function private.invoke_edge(fn_name text, body jsonb default '{}')
 returns bigint language plpgsql security definer set search_path='' as $$
