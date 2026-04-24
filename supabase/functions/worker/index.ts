@@ -10,6 +10,11 @@
 // Keep heavy work inside EdgeRuntime.waitUntil so we can ACK the cron invocation fast.
 
 import { createAdminClient } from "../_shared/supabase-admin.ts";
+import {
+  handleEnrichPersonApify,
+  handleEnrichCompanyApify,
+  handleScrapePostsApify,
+} from "../_shared/handlers-apify.ts";
 
 type JobMessage = {
   type: string;
@@ -122,23 +127,36 @@ async function dispatch(
   supabase: ReturnType<typeof createAdminClient>,
   message: JobMessage,
 ): Promise<unknown> {
-  switch (message.type) {
-    case "csv_import":
+  const { type, payload, org_id } = message;
+  switch (type) {
     case "enrich_person_apify":
+      return handleEnrichPersonApify(supabase, payload as { personId: string }, org_id);
     case "enrich_company_apify":
+      return handleEnrichCompanyApify(supabase, payload as { companyId: string }, org_id);
     case "scrape_posts_apify":
+      return handleScrapePostsApify(
+        supabase,
+        payload as { personId: string; limit?: number },
+        org_id,
+      );
+
+    // TODO(S3.3): email-finder stack
     case "find_email_findymail":
     case "find_email_signalhire":
     case "verify_email_instantly":
+    case "waterfall_escalate":
+    // TODO(S3.4): LLM jobs
     case "score_lead_llm":
     case "generate_messages_llm":
+    // TODO(S3.5): perplexity custom research
     case "enrich_custom_perplexity":
+    // TODO(S4): instantly push + sync
     case "push_to_instantly":
     case "sync_instantly_stats":
-    case "waterfall_escalate":
-      // TODO(Sprint 3): implement handler.
-      return { noop: true, type: message.type };
+    // CSV import is handled synchronously today; the job type is reserved for future async path.
+    case "csv_import":
+      return { noop: true, type };
     default:
-      throw new Error(`unknown job type: ${message.type}`);
+      throw new Error(`unknown job type: ${type}`);
   }
 }

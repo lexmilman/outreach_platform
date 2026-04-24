@@ -17,6 +17,34 @@ export const handlers = [
       },
     }),
   ),
+  // Apify — get run (poll)
+  http.get("https://api.apify.com/v2/actor-runs/:runId", ({ params }) =>
+    HttpResponse.json({
+      data: {
+        id: params.runId,
+        actId: "dev_fusion~linkedin-profile-scraper",
+        status: "SUCCEEDED",
+        defaultDatasetId: "dataset_test_abc",
+        usageTotalUsd: 0.012,
+        startedAt: "2026-04-24T08:00:00.000Z",
+        finishedAt: "2026-04-24T08:00:42.000Z",
+      },
+    }),
+  ),
+  // Apify — read dataset items
+  http.get("https://api.apify.com/v2/datasets/:datasetId/items", () =>
+    HttpResponse.json([
+      {
+        linkedinUrl: "https://www.linkedin.com/in/jane-doe",
+        firstName: "Jane",
+        lastName: "Doe",
+        fullName: "Jane Doe",
+        headline: "VP Eng at Acme",
+        companyName: "Acme Corp",
+        succeeded: true,
+      },
+    ]),
+  ),
 
   // FindyMail — linkedin search
   http.post("https://app.findymail.com/api/search/linkedin", () =>

@@ -1,0 +1,9 @@
+{
+  "data": {
+    "id": "run_mock_abc123",
+    "actId": "dev_fusion~linkedin-profile-scraper",
+    "status": "RUNNING",
+    "defaultDatasetId": "dataset_mock_xyz789",
+    "startedAt": "2026-04-24T08:00:00.000Z"
+  }
+}

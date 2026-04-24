@@ -1,0 +1,38 @@
+[
+  {
+    "linkedinUrl": "https://www.linkedin.com/in/jane-doe",
+    "publicIdentifier": "jane-doe",
+    "firstName": "Jane",
+    "lastName": "Doe",
+    "fullName": "Jane Doe",
+    "headline": "VP of Engineering at Acme Corp",
+    "about": "Builder of high-leverage teams.",
+    "location": "San Francisco Bay Area",
+    "country": "US",
+    "photoUrl": "https://media.licdn.com/avatar.png",
+    "currentPosition": "VP of Engineering",
+    "companyName": "Acme Corp",
+    "companyWebsite": "https://acme.com",
+    "companyLinkedinUrl": "https://www.linkedin.com/company/acme",
+    "skills": ["leadership", "distributed systems"],
+    "languages": ["English"],
+    "connectionsCount": 1234,
+    "followersCount": 5678,
+    "succeeded": true
+  },
+  {
+    "linkedinUrl": "https://www.linkedin.com/in/john-smith",
+    "publicIdentifier": "john-smith",
+    "firstName": "John",
+    "lastName": "Smith",
+    "fullName": "John Smith",
+    "headline": "Founder at Beta Labs",
+    "about": "Tinkering with embedded ML.",
+    "location": "Berlin, Germany",
+    "country": "DE",
+    "currentPosition": "Founder",
+    "companyName": "Beta Labs",
+    "companyLinkedinUrl": "https://www.linkedin.com/company/beta-labs",
+    "succeeded": true
+  }
+]
