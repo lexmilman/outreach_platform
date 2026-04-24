@@ -1,8 +1,5 @@
--- ========= CSV bulk import RPCs =========
--- Goal: single round-trip upsert for companies + people that respects RLS
--- via SECURITY DEFINER with an org-membership gate.
--- Returns counts only (inserted / matched / skipped). Detailed per-row
--- rejection is handled client-side before we ever call these.
+-- Hotfix for migration 7: qualify all ::citext casts with public schema.
+-- Paste into SQL Editor and Run once.
 
 create or replace function public.bulk_upsert_companies(p_rows jsonb)
 returns table(inserted int, matched int)
@@ -84,8 +81,6 @@ begin
   return query select v_total, v_matched;
 end $$;
 grant execute on function public.bulk_upsert_companies(jsonb) to authenticated;
-
--- ---------------------------------------------------------------------
 
 create or replace function public.bulk_upsert_people(p_rows jsonb)
 returns table(inserted int, matched int, linked_companies int)
@@ -221,74 +216,3 @@ begin
   return query select v_inserted, v_matched, v_linked;
 end $$;
 grant execute on function public.bulk_upsert_people(jsonb) to authenticated;
-
--- ========= Helper view: people with their current company =========
-create or replace view public.v_people_with_company
-with (security_invoker = true) as
-select
-  p.id,
-  p.linkedin_url,
-  p.linkedin_hash_id,
-  p.public_identifier,
-  p.first_name,
-  p.last_name,
-  p.full_name,
-  p.headline,
-  p.about,
-  p.location,
-  p.country,
-  p.photo_url,
-  p.current_title,
-  p.current_company_id,
-  p.connections_count,
-  p.followers_count,
-  p.dedup_key,
-  p.data_json,
-  p.created_at,
-  p.updated_at,
-  c.name        as company_name,
-  c.domain      as company_domain,
-  c.industry    as company_industry,
-  c.linkedin_url as company_linkedin_url,
-  c.logo_url    as company_logo_url
-from public.people p
-left join public.companies c on c.id = p.current_company_id;
-
-grant select on public.v_people_with_company to authenticated;
-
--- ========= Unique constraint for table_views upserts =========
-alter table public.table_views
-  add constraint table_views_user_entity_name_unique
-  unique (user_id, org_id, entity, name);
-
--- ========= Whitelisted people update RPC (for inline cell edits) =========
--- Only allows a small set of columns; anything else has to go via the
--- worker/service role. Keeps Sprint 2 cell editing safe.
-create or replace function public.update_person_fields(
-  p_id uuid,
-  p_first_name text default null,
-  p_last_name text default null,
-  p_full_name text default null,
-  p_current_title text default null,
-  p_location text default null,
-  p_country text default null
-) returns public.people
-language plpgsql security definer set search_path = '' as $$
-declare v_row public.people;
-begin
-  if auth.uid() is null then
-    raise exception 'not authenticated';
-  end if;
-  update public.people
-     set first_name    = coalesce(p_first_name,    first_name),
-         last_name     = coalesce(p_last_name,     last_name),
-         full_name     = coalesce(p_full_name,     full_name),
-         current_title = coalesce(p_current_title, current_title),
-         location      = coalesce(p_location,      location),
-         country       = coalesce(p_country,       country),
-         updated_at    = now()
-   where id = p_id
-   returning * into v_row;
-  return v_row;
-end $$;
-grant execute on function public.update_person_fields(uuid, text, text, text, text, text, text) to authenticated;
