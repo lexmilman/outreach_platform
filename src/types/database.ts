@@ -323,7 +323,12 @@ export type Database = {
         Returns: { msg_id: number; enqueued_at: string; read_ct: number; message: Json }[];
       };
       link_audience_members: {
-        Args: { p_audience_id: string; p_linkedin_urls?: string[]; p_hash_ids?: string[] };
+        Args: {
+          p_audience_id: string;
+          p_linkedin_urls?: string[];
+          p_hash_ids?: string[];
+          p_dedup_keys?: string[];
+        };
         Returns: number;
       };
       search_people: {

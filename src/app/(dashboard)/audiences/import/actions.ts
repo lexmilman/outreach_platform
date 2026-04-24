@@ -62,17 +62,20 @@ export async function importCsvAction(input: ImportPayload): Promise<ImportActio
   }
 
   try {
-    const { linkedinUrls, hashIds, ...counts } = await runImport(
+    const { linkedinUrls, hashIds, dedupKeys, ...counts } = await runImport(
       supabase,
       mapped.map((m) => m.lead),
     );
 
-    // Link every imported person to this audience. Idempotent on the DB side.
-    if (linkedinUrls.length > 0 || hashIds.length > 0) {
+    // Link every imported person to this audience — by linkedin_url OR hash_id
+    // OR dedup_key. The last fallback covers existing rows that predate
+    // migration 14 and still have linkedin_hash_id = NULL.
+    if (linkedinUrls.length > 0 || hashIds.length > 0 || dedupKeys.length > 0) {
       const { error: linkErr } = await supabase.rpc("link_audience_members", {
         p_audience_id: audience.id,
         p_linkedin_urls: linkedinUrls,
         p_hash_ids: hashIds,
+        p_dedup_keys: dedupKeys,
       });
       if (linkErr) {
         // Non-fatal — people are still in the global table, we just lose the

@@ -28,6 +28,12 @@ function domainFromUrl(raw?: string | null): string | null {
   }
 }
 
+function buildPublicLinkedinUrl(publicId: string): string | null {
+  const cleaned = publicId.trim().toLowerCase().replace(/\/+$/, "");
+  if (!/^[a-z0-9][a-z0-9\-_.]*$/i.test(cleaned)) return null;
+  return `https://www.linkedin.com/in/${cleaned}`;
+}
+
 type CompanyRow = {
   linkedin_url: string | null;
   domain: string | null;
@@ -94,6 +100,17 @@ export async function buildImportRows(
     }
 
     const effectiveHashId = personLinkedin.hashId ?? lead.linkedin_hash_id ?? null;
+
+    // If LinkedHelper gave us a public_id (vanity handle), prefer building a
+    // public /in/ URL over leaving linkedin_url null. Sales Nav hash URLs
+    // can't be reversed to public slugs from the CSV alone — that needs
+    // SignalHire/Apify — but a non-empty public_id lets us skip the lookup.
+    const publicUrlFromPublicId =
+      !personLinkedin.publicUrl && lead.public_identifier
+        ? buildPublicLinkedinUrl(lead.public_identifier)
+        : null;
+    const effectiveLinkedinUrl = personLinkedin.publicUrl ?? publicUrlFromPublicId;
+
     const dedupKey = await computeDedupKey({
       firstName: lead.first_name,
       lastName: lead.last_name,
@@ -102,7 +119,7 @@ export async function buildImportRows(
     });
 
     people.push({
-      linkedin_url: personLinkedin.publicUrl,
+      linkedin_url: effectiveLinkedinUrl,
       linkedin_hash_id: effectiveHashId,
       public_identifier: lead.public_identifier ?? null,
       first_name: lead.first_name ?? null,
@@ -146,6 +163,7 @@ export async function runImport(
   Omit<ImportReport, "totalRows" | "rejected"> & {
     linkedinUrls: string[];
     hashIds: string[];
+    dedupKeys: string[];
   }
 > {
   const { people, companies } = await buildImportRows(leads);
@@ -186,6 +204,9 @@ export async function runImport(
   const hashIds = Array.from(
     new Set(people.map((p) => p.linkedin_hash_id).filter((h): h is string => Boolean(h))),
   );
+  const dedupKeys = Array.from(
+    new Set(people.map((p) => p.dedup_key).filter((k): k is string => Boolean(k))),
+  );
 
   return {
     insertedPeople,
@@ -195,5 +216,6 @@ export async function runImport(
     linkedCompanies,
     linkedinUrls,
     hashIds,
+    dedupKeys,
   };
 }
