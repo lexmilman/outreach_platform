@@ -298,7 +298,7 @@ revoke all on function public.pgmq_archive(text,bigint) from anon, authenticated
 -- Used by every email-finder handler so the dedup logic lives in one place.
 create or replace function public.record_email(
   p_person_id uuid,
-  p_email     citext,
+  p_email     public.citext,
   p_source    text,
   p_tier      int default 1,
   p_status    text default 'unverified'
@@ -325,13 +325,13 @@ begin
   returning id into v_id;
   return v_id;
 end $$;
-revoke all on function public.record_email(uuid,citext,text,int,text) from anon, authenticated;
+revoke all on function public.record_email(uuid,public.citext,text,int,text) from anon, authenticated;
 
 -- ---------------------------------------------------------------------
 
 create or replace function public.findymail_finalize(
   p_enrichment_id bigint,
-  p_email         citext,
+  p_email         public.citext,
   p_run_cost_usd  numeric default 0
 ) returns uuid
 language plpgsql security definer set search_path = '' as $$
@@ -360,7 +360,7 @@ begin
 
   return v_email_id;
 end $$;
-revoke all on function public.findymail_finalize(bigint,citext,numeric) from anon, authenticated;
+revoke all on function public.findymail_finalize(bigint,public.citext,numeric) from anon, authenticated;
 
 -- ---------------------------------------------------------------------
 
@@ -374,13 +374,13 @@ language plpgsql security definer set search_path = '' as $$
 declare
   v_enr public.enrichments%rowtype;
   v_email_id uuid;
-  v_first_email citext;
+  v_first_email public.citext;
 begin
   select * into v_enr from public.enrichments where id = p_enrichment_id;
   if not found then raise exception 'enrichment % not found', p_enrichment_id; end if;
 
   -- Take the first non-empty email value.
-  select (e->>'value')::citext into v_first_email
+  select (e->>'value')::public.citext into v_first_email
   from jsonb_array_elements(coalesce(p_emails, '[]'::jsonb)) as e
   where coalesce(e->>'value','') <> ''
   limit 1;
