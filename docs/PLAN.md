@@ -37,7 +37,7 @@
 - [x] **S4.4** `instantly-sync` Edge Function writes today's snapshot per running campaign. Cron entry was already scheduled in `00000000000004_cron.sql` ("instantly-daily-sync"). `syncCampaignStatsAction` lets the operator trigger a sync on demand.
 - [x] **S4.5** `v_campaign_kpis` view + `analytics_summary` RPC + `/analytics` dashboard (client filter, date range, KPIs, daily bars, cost-by-provider breakdown, top campaigns table).
 - [x] **S4.6** `e2e/push-instantly.spec.ts` scenario (behind `.fixme()` until `TEST_SUPABASE_*` is provisioned, same pattern as `enrichment-run.spec.ts`).
-- [ ] `/ship "feat: instantly push + analytics — MVP complete"`
+- [x] `/ship "feat: instantly push + analytics — MVP complete"`
 
 ## Sprint 5+ — Full phase
 - [ ] LinkedIn posts enrichment + Perplexity custom research
