@@ -3,7 +3,8 @@
  *
  * Accepts:
  *   - public: https://www.linkedin.com/in/<slug>
- *   - sales nav: https://www.linkedin.com/sales/lead/<hash>,NAME_SEARCH,xxxx
+ *   - sales nav lead: https://www.linkedin.com/sales/lead/<hash>,NAME_SEARCH,xxxx
+ *   - sales nav people: https://www.linkedin.com/sales/people/<hash>,NAME_SEARCH,xxxx
  *
  * Returns { publicUrl, hashId } where:
  *   - publicUrl is the canonical lowercase-host, trailing-slash-stripped form,
@@ -19,7 +20,8 @@ export type NormalizedLinkedInUrl = {
 
 const PUBLIC_IN = /^https?:\/\/(?:www\.)?linkedin\.com\/in\/([^/?#]+)\/?/i;
 const PUBLIC_COMPANY = /^https?:\/\/(?:www\.)?linkedin\.com\/company\/([^/?#]+)\/?/i;
-const SALES_NAV = /^https?:\/\/(?:www\.)?linkedin\.com\/sales\/lead\/([^,]+)/i;
+// LinkedHelper exports use /sales/people/, Sales Navigator export UI uses /sales/lead/ — both carry the ACw... hash.
+const SALES_NAV = /^https?:\/\/(?:www\.)?linkedin\.com\/sales\/(?:lead|people)\/([^,/?#]+)/i;
 
 export function normalizeLinkedInUrl(raw: string | null | undefined): NormalizedLinkedInUrl {
   const empty: NormalizedLinkedInUrl = { publicUrl: null, hashId: null, raw: raw ?? "" };

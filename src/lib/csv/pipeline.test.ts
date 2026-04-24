@@ -77,8 +77,12 @@ describe("CSV pipeline (fixture → buildImportRows)", () => {
       expect(p.linkedin_url).toBe(p.linkedin_url?.toLowerCase());
     }
 
-    // dedup_key present only when we have first/last + domain.
-    expect(people.every((p) => p.dedup_key)).toBe(true);
+    // dedup_key is a FALLBACK. In this fixture every row has a public linkedin_url
+    // (the primary dedup path), and no company domain, so dedup_key is null —
+    // that's the new, stricter contract: we refuse to collapse two people solely
+    // on firstName+lastName when neither hashId nor domain is known.
+    expect(people.every((p) => p.dedup_key === null)).toBe(true);
+    expect(people.every((p) => p.linkedin_url)).toBe(true);
   });
 
   it("rejects rows the LeadSchema won't accept (garbage in, named out)", () => {

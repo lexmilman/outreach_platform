@@ -93,15 +93,17 @@ export async function buildImportRows(
       });
     }
 
+    const effectiveHashId = personLinkedin.hashId ?? lead.linkedin_hash_id ?? null;
     const dedupKey = await computeDedupKey({
       firstName: lead.first_name,
       lastName: lead.last_name,
       domain: companyDomain,
+      hashId: effectiveHashId,
     });
 
     people.push({
       linkedin_url: personLinkedin.publicUrl,
-      linkedin_hash_id: personLinkedin.hashId ?? lead.linkedin_hash_id ?? null,
+      linkedin_hash_id: effectiveHashId,
       public_identifier: lead.public_identifier ?? null,
       first_name: lead.first_name ?? null,
       last_name: lead.last_name ?? null,

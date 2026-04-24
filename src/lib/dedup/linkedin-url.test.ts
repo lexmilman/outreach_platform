@@ -13,12 +13,20 @@ describe("normalizeLinkedInUrl", () => {
     expect(r.publicUrl).toBe("https://www.linkedin.com/in/jane-smith");
   });
 
-  it("extracts sales nav hash", () => {
+  it("extracts sales nav hash from /sales/lead/", () => {
     const r = normalizeLinkedInUrl(
       "https://www.linkedin.com/sales/lead/ACwAAAB123XYZ,NAME_SEARCH,x9f2",
     );
     expect(r.publicUrl).toBeNull();
     expect(r.hashId).toBe("ACwAAAB123XYZ");
+  });
+
+  it("extracts sales nav hash from /sales/people/ (LinkedHelper v2 export)", () => {
+    const r = normalizeLinkedInUrl(
+      "https://www.linkedin.com/sales/people/ACwAAAA_QD0Bo5B1bXhaVTvlbI8SGWIHD-8oci8,x4Dm,NAME_SEARCH/",
+    );
+    expect(r.publicUrl).toBeNull();
+    expect(r.hashId).toBe("ACwAAAA_QD0Bo5B1bXhaVTvlbI8SGWIHD-8oci8");
   });
 
   it("normalizes company URLs", () => {

@@ -14,8 +14,22 @@ export type MappingResult = {
 
 type AliasEntry = { canonical: CanonicalField; alias: string };
 
+/**
+ * Normalize a header (from CSV) or an alias (from our corpus) before comparison.
+ * LinkedHelper v2 exports use snake_case (e.g. `profile_url`, `location_name`) while
+ * our alias corpus uses human-readable form (e.g. "profile url"). Collapse both.
+ */
+function normalizeKey(s: string): string {
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/[_\-./]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 const ALIAS_CORPUS: AliasEntry[] = ALL_CANONICAL_FIELDS.flatMap((canonical) =>
-  CANONICAL_ALIASES[canonical].map((alias) => ({ canonical, alias })),
+  CANONICAL_ALIASES[canonical].map((alias) => ({ canonical, alias: normalizeKey(alias) })),
 );
 
 const fuse = new Fuse(ALIAS_CORPUS, {
@@ -29,7 +43,7 @@ const fuse = new Fuse(ALIAS_CORPUS, {
 export function autoMapColumns(headers: string[]): MappingResult {
   const used = new Set<CanonicalField>();
   const mappings: FieldMapping[] = headers.map((h) => {
-    const needle = h.trim().toLowerCase();
+    const needle = normalizeKey(h);
     const results = fuse.search(needle);
     const first = results[0];
     if (!first || first.score === undefined) {
