@@ -9,6 +9,7 @@
 
 import { startActorRun, type ApifyActorKey } from "./apify.ts";
 import type { createAdminClient } from "./supabase-admin.ts";
+import { workerLog } from "./worker-log.ts";
 
 type Supabase = ReturnType<typeof createAdminClient>;
 
@@ -54,6 +55,15 @@ async function startAndRecord(
     body: args.body,
     webhookUrl: callbackUrl(),
     webhookSecret: callbackSecret(),
+  });
+  await workerLog(supabase, run.ok ? "info" : "error", "apify start result", null, args.actorKind, {
+    enrichment_id: enrichment.id,
+    person_id: args.personId ?? null,
+    company_id: args.companyId ?? null,
+    ok: run.ok,
+    runId: run.ok ? run.runId : null,
+    mock: run.ok ? Boolean(run.mock) : null,
+    error: run.ok ? null : run.error,
   });
   if (!run.ok) {
     await supabase

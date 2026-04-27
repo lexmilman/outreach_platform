@@ -16,6 +16,8 @@ const FINDYMAIL_BASE = "https://app.findymail.com";
 const SIGNALHIRE_BASE = "https://www.signalhire.com/api/v1";
 const INSTANTLY_BASE = "https://api.instantly.ai";
 
+import { workerLog } from "./worker-log.ts";
+
 // ---------- FindyMail (tier 1) ----------
 
 export async function handleFindEmailFindymail(
@@ -75,6 +77,13 @@ export async function handleFindEmailFindymail(
     p_enrichment_id: enrichment.id,
     p_email: email,
     p_run_cost_usd: cost,
+  });
+  await workerLog(supabase, email ? "info" : "warn", "findymail result", null, "find_email_findymail", {
+    person_id: person.id,
+    enrichment_id: enrichment.id,
+    email,
+    cost_usd: cost,
+    mock: isMock,
   });
 
   if (email) {

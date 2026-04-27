@@ -4,6 +4,7 @@
 // person's data_json + enrichments audit trail.
 
 import type { createAdminClient } from "./supabase-admin.ts";
+import { workerLog } from "./worker-log.ts";
 
 type Supabase = ReturnType<typeof createAdminClient>;
 

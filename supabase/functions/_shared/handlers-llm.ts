@@ -10,6 +10,7 @@
 import { z } from "https://esm.sh/zod@3.23.8";
 import { callAnthropicJson } from "./llm.ts";
 import type { createAdminClient } from "./supabase-admin.ts";
+import { workerLog } from "./worker-log.ts";
 
 type Supabase = ReturnType<typeof createAdminClient>;
 

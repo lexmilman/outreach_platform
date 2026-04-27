@@ -275,6 +275,81 @@ export type Database = {
         Update: Record<string, Json>;
         Relationships: [];
       };
+      emails: {
+        Row: {
+          id: string;
+          person_id: string;
+          email: string;
+          source: string;
+          verification_status: string;
+          verified_at: Ts | null;
+          verifier: string | null;
+          last_used_at: Ts | null;
+          is_primary: boolean;
+          tier: number;
+          freshness_expires_at: Ts | null;
+          created_at: Ts;
+        };
+        Insert: {
+          id?: string;
+          person_id: string;
+          email: string;
+          source: string;
+          verification_status?: string;
+          verified_at?: Ts | null;
+          verifier?: string | null;
+          last_used_at?: Ts | null;
+          is_primary?: boolean;
+          tier?: number;
+          freshness_expires_at?: Ts | null;
+          created_at?: Ts;
+        };
+        Update: Partial<{
+          id: string;
+          person_id: string;
+          email: string;
+          source: string;
+          verification_status: string;
+          verified_at: Ts | null;
+          verifier: string | null;
+          last_used_at: Ts | null;
+          is_primary: boolean;
+          tier: number;
+          freshness_expires_at: Ts | null;
+          created_at: Ts;
+        }>;
+        Relationships: [];
+      };
+      worker_log: {
+        Row: {
+          id: number;
+          level: string;
+          job_id: string | null;
+          type: string | null;
+          message: string;
+          context: Json;
+          created_at: Ts;
+        };
+        Insert: {
+          id?: number;
+          level: string;
+          job_id?: string | null;
+          type?: string | null;
+          message: string;
+          context?: Json;
+          created_at?: Ts;
+        };
+        Update: Partial<{
+          id: number;
+          level: string;
+          job_id: string | null;
+          type: string | null;
+          message: string;
+          context: Json;
+          created_at: Ts;
+        }>;
+        Relationships: [];
+      };
       audience_members: {
         Row: { audience_id: string; person_id: string; added_at: Ts };
         Insert: { audience_id: string; person_id: string; added_at?: Ts };

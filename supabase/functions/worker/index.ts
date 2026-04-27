@@ -2,12 +2,12 @@
 // Supabase Edge Function: worker
 // Invoked every 10s via pg_cron -> pg_net. Reads jobs from pgmq and dispatches.
 //
-// Sprint 3: implement per-type handlers. This scaffold:
-//   - reads up to 5 messages (vt=420s)
-//   - inserts a job_runs row
-//   - deletes on success / sets vt on retry / DLQs after 5 attempts
-//
-// Keep heavy work inside EdgeRuntime.waitUntil so we can ACK the cron invocation fast.
+// Visibility model (the operator can't see Deno stdout/stderr in the
+// Supabase Dashboard):
+//   - job_runs row is inserted FIRST, before any other work, so even if
+//     dispatch crashes, the failure is queryable.
+//   - worker_log table receives structured entry/exit lines for every job
+//     including the first 5 stack frames on error.
 
 import { createAdminClient } from "../_shared/supabase-admin.ts";
 import {
@@ -30,6 +30,7 @@ import {
   handlePushToInstantly,
   handleSyncInstantlyStats,
 } from "../_shared/handlers-instantly.ts";
+import { workerLog } from "../_shared/worker-log.ts";
 
 type JobMessage = {
   type: string;
@@ -46,7 +47,15 @@ Deno.serve(async (_req) => {
   const supabase = createAdminClient();
 
   // @ts-expect-error — Edge Runtime global
-  EdgeRuntime.waitUntil(processBatch(supabase));
+  EdgeRuntime.waitUntil(
+    processBatch(supabase).catch((err) => {
+      // Last-resort log if processBatch itself throws (e.g., pgmq_read 401).
+      workerLog(supabase, "error", "processBatch threw", null, null, {
+        error: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? topFrames(err.stack, 5) : null,
+      }).catch(() => {});
+    }),
+  );
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 202,
@@ -61,14 +70,15 @@ async function processBatch(supabase: ReturnType<typeof createAdminClient>) {
     qty: BATCH_SIZE,
   });
   if (error) {
-    console.error("pgmq.read failed", error);
+    await workerLog(supabase, "error", "pgmq_read failed", null, null, {
+      error: error.message ?? String(error),
+    });
     return;
   }
   if (!msgs || msgs.length === 0) return;
 
   for (const m of msgs as { msg_id: number; read_ct: number; message: JobMessage }[]) {
-    const { msg_id, read_ct, message } = m;
-    await handleOne(supabase, msg_id, read_ct, message);
+    await handleOne(supabase, m.msg_id, m.read_ct, m.message);
   }
 }
 
@@ -78,7 +88,9 @@ async function handleOne(
   readCt: number,
   message: JobMessage,
 ) {
-  const jobRun = await supabase
+  // 1) Insert job_runs FIRST. If this fails the whole job aborts loudly via
+  //    worker_log so the operator can see why.
+  const jobRunIns = await supabase
     .from("job_runs")
     .insert({
       org_id: message.org_id,
@@ -91,6 +103,24 @@ async function handleOne(
     .select("id")
     .single();
 
+  if (jobRunIns.error || !jobRunIns.data?.id) {
+    await workerLog(supabase, "error", "job_runs insert failed", message.job_id, message.type, {
+      msg_id: msgId,
+      read_ct: readCt,
+      error: jobRunIns.error?.message ?? "no id returned",
+      payload: message.payload,
+    });
+    // Don't delete or re-queue: leave VT to expire so we get another shot.
+    return;
+  }
+  const jobRunId = jobRunIns.data.id;
+
+  await workerLog(supabase, "info", "dispatch start", message.job_id, message.type, {
+    msg_id: msgId,
+    read_ct: readCt,
+    payload: message.payload,
+  });
+
   const start = Date.now();
   try {
     const output = await dispatch(supabase, message);
@@ -102,12 +132,25 @@ async function handleOne(
         ended_at: new Date().toISOString(),
         cost_usd: (output as { costUsd?: number })?.costUsd ?? 0,
       })
-      .eq("id", jobRun.data?.id);
+      .eq("id", jobRunId);
 
     await supabase.rpc("pgmq_delete", { queue_name: "jobs", msg_id: msgId });
+
+    await workerLog(supabase, "info", "dispatch succeeded", message.job_id, message.type, {
+      duration_ms: Date.now() - start,
+      output_keys: output && typeof output === "object" ? Object.keys(output) : null,
+    });
   } catch (err) {
-    console.error(`Job ${message.type} failed`, err);
     const errMessage = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? topFrames(err.stack, 5) : null;
+
+    await workerLog(supabase, "error", "dispatch threw", message.job_id, message.type, {
+      duration_ms: Date.now() - start,
+      error: errMessage,
+      stack,
+      read_ct: readCt,
+      will_dlq: readCt >= MAX_ATTEMPTS,
+    });
 
     if (readCt >= MAX_ATTEMPTS) {
       await supabase.rpc("pgmq_send", {
@@ -117,8 +160,13 @@ async function handleOne(
       await supabase.rpc("pgmq_archive", { queue_name: "jobs", msg_id: msgId });
       await supabase
         .from("job_runs")
-        .update({ status: "failed", error: errMessage, ended_at: new Date().toISOString() })
-        .eq("id", jobRun.data?.id);
+        .update({
+          status: "failed",
+          error: errMessage,
+          output: stack ? { stack } : null,
+          ended_at: new Date().toISOString(),
+        })
+        .eq("id", jobRunId);
     } else {
       const backoffSec = Math.min(3600, Math.pow(2, readCt) * 30 + Math.floor(Math.random() * 15));
       await supabase.rpc("extend_vt", { p_queue: "jobs", p_msg_id: msgId, p_offset: backoffSec });
@@ -127,16 +175,20 @@ async function handleOne(
         .update({
           status: "retrying",
           error: errMessage,
+          output: stack ? { stack } : null,
           ended_at: new Date().toISOString(),
         })
-        .eq("id", jobRun.data?.id);
+        .eq("id", jobRunId);
     }
-  } finally {
-    console.log(`job ${message.type} ${message.job_id} took ${Date.now() - start}ms`);
   }
 }
 
-// ------- Dispatch table (Sprint 3: implement each case) -------
+function topFrames(stack: string | undefined, n: number): string[] | null {
+  if (!stack) return null;
+  return stack.split("\n").slice(0, n + 1);
+}
+
+// ------- Dispatch table -------
 
 async function dispatch(
   supabase: ReturnType<typeof createAdminClient>,
